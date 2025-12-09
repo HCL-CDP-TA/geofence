@@ -18,14 +18,50 @@ model User {
 }
 
 model Geofence {
-  id        String   @id @default(cuid())
+  id        String          @id @default(cuid())
   name      String
   latitude  Float
   longitude Float
-  radius    Float    // in meters
-  enabled   Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  radius    Float           // in meters
+  enabled   Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  events    GeofenceEvent[] // Relation to events
 
   @@index([enabled])
+}
+
+// Track user geofence state for server-side evaluation
+model UserGeofenceState {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  activeGeofenceIds String[] // Array of currently active geofence IDs
+  lastLatitude      Float
+  lastLongitude     Float
+  lastReportedAt    DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// Log all geofence enter/exit events
+model GeofenceEvent {
+  id         String   @id @default(cuid())
+  userId     String
+  eventType  String   // 'enter' or 'exit'
+  geofenceId String
+  geofence   Geofence @relation(fields: [geofenceId], references: [id], onDelete: Cascade)
+  latitude   Float
+  longitude  Float
+  accuracy   Float?
+  speed      Float?
+  heading    Float?
+  timestamp  DateTime
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([geofenceId])
+  @@index([eventType])
+  @@index([timestamp])
 }

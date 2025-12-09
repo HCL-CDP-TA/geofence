@@ -7,6 +7,9 @@ A test application for the `@geofence/sdk` that provides dual-mode testing with 
 - **Dual Testing Modes**:
   - **Manual Mode**: Set custom latitude/longitude coordinates for precise testing
   - **GPS Mode**: Real browser geolocation with automatic map following (works with Chrome DevTools Sensors)
+- **Dual Evaluation Modes**:
+  - **Client-Side Evaluation**: Geofences evaluated locally in the browser (default)
+  - **Server-Side Evaluation**: Position sent to server, events returned from server
 - **Interactive Map**: Visualize geofences and current position with Leaflet
 - **Event Logging**: Real-time display of enter/exit/position/error events
 - **Quick Positions**: Pre-configured city locations for testing
@@ -49,7 +52,7 @@ The test app will open at `http://localhost:5173` (or another port if 5173 is in
 
 ## How to Use
 
-### Choosing a Mode
+### Choosing Position Mode
 
 Toggle between **Manual** and **GPS** mode before or during monitoring:
 
@@ -76,11 +79,42 @@ Toggle between **Manual** and **GPS** mode before or during monitoring:
   3. Select a preset location or enter custom lat/lng
   4. Start monitoring - map will follow as you change locations
 
+### Choosing Evaluation Mode
+
+Toggle between **Client Mode** and **Server Mode** before or during monitoring:
+
+#### Client-Side Evaluation (Default)
+- **Purpose**: Geofences are fetched and evaluated locally in the browser
+- **How it works**:
+  - SDK fetches geofences from `GET /api/public/geofences`
+  - Distance calculations performed locally using Haversine formula
+  - Events fired immediately when transitions detected
+  - No network requests during monitoring (only initial fetch)
+- **When to use**: For most testing scenarios, simple integrations
+- **Network**: Minimal (one-time geofence fetch)
+
+#### Server-Side Evaluation
+- **Purpose**: Server evaluates geofences and fires events to adapters
+- **How it works**:
+  - Position sent to server `POST /api/events/position` only when moved >50 meters
+  - Server evaluates geofences and detects transitions
+  - Server dispatches events to configured adapters (CDP, webhooks, database logger)
+  - Server returns events in response, which SDK emits locally
+- **When to use**: Testing martech integrations, webhooks, CDP event routing
+- **Network**: Position sent only when significant movement detected
+- **User ID**: Enter a user ID (defaults to "test-user-1") to identify the user in the server
+
+**To switch modes:**
+1. Enter a User ID in the text field
+2. Click "Client Mode" or "Server Mode" button
+3. Monitor will restart with the new configuration
+4. Event log will show which mode is active
+
 ### Monitor Controls
 
 - **Start Monitoring**: Fetches geofences from the API and begins monitoring
 - **Stop Monitoring**: Stops the geofence monitoring
-- **Refresh Geofences**: Manually reload geofences from the server without restarting
+- **Refresh Geofences**: Manually reload geofences from the server without restarting (Client mode only)
 
 ### Event Log
 
@@ -134,15 +168,15 @@ Shows all loaded geofences with:
 4. Click "🔄 Refresh Geofences"
 5. The new/updated geofences will appear without restarting
 
-## SDK Modes
+## SDK Configuration Examples
 
-The test app demonstrates both SDK modes:
+The test app demonstrates all SDK modes and configurations:
 
-### Manual Mode (Test Mode)
+### Manual Mode + Client-Side Evaluation (Default)
 ```javascript
 const monitor = new GeofenceMonitor({
   apiUrl: 'http://localhost:3000',
-  pollingInterval: 5000,
+  pollingInterval: 1000,
   debug: true,
   testMode: true  // Enables manual position control
 });
@@ -151,17 +185,101 @@ const monitor = new GeofenceMonitor({
 monitor.setTestPosition(37.7749, -122.4194);
 ```
 
-### GPS Mode (Production Mode)
+### GPS Mode + Client-Side Evaluation
 ```javascript
 const monitor = new GeofenceMonitor({
   apiUrl: 'http://localhost:3000',
-  pollingInterval: 5000,
+  pollingInterval: 1000,
   debug: true,
   testMode: false  // Uses real browser geolocation
 });
 
 // Position is automatically polled from navigator.geolocation
 ```
+
+### Manual Mode + Server-Side Evaluation
+```javascript
+const monitor = new GeofenceMonitor({
+  apiUrl: 'http://localhost:3000',
+  userId: 'test-user-1',
+  enableServerEvaluation: true,
+  significantMovementThreshold: 50,
+  pollingInterval: 1000,
+  debug: true,
+  testMode: true
+});
+
+// Set custom position - will be sent to server when >50m movement
+monitor.setTestPosition(37.7749, -122.4194);
+```
+
+### GPS Mode + Server-Side Evaluation
+```javascript
+const monitor = new GeofenceMonitor({
+  apiUrl: 'http://localhost:3000',
+  userId: 'test-user-1',
+  enableServerEvaluation: true,
+  significantMovementThreshold: 50,
+  pollingInterval: 1000,
+  debug: true,
+  testMode: false
+});
+
+// Position automatically polled and sent to server when >50m movement
+```
+
+## Testing Server-Side Integrations
+
+### Testing CDP Adapter
+
+1. Configure CDP credentials in admin app `.env`:
+   ```bash
+   CDP_API_KEY="your-cdp-api-key"
+   CDP_PASS_KEY="your-cdp-pass-key"
+   CDP_ENDPOINT="https://pl.dev.hxcd.now.hclsoftware.cloud"
+   ```
+
+2. In test app:
+   - Enter a User ID (e.g., "test-user-1")
+   - Switch to **Server Mode**
+   - Start monitoring
+   - Move position to enter/exit geofences
+
+3. Check CDP dashboard:
+   - Events should appear as "HTTP API" source (not "JavaScript/Web")
+   - Event type: "Geofence Enter" or "Geofence Exit"
+   - User ID: "test-user-1"
+
+### Testing Webhook Adapter
+
+1. Set up a webhook endpoint (e.g., webhook.site)
+
+2. Configure webhook URL in admin app `.env`:
+   ```bash
+   GEOFENCE_WEBHOOK_URL="https://webhook.site/your-unique-url"
+   ```
+
+3. In test app:
+   - Switch to **Server Mode**
+   - Start monitoring and trigger events
+
+4. View webhook payloads at your webhook endpoint
+
+### Viewing Logged Events
+
+All events are logged to the database regardless of adapter configuration:
+
+1. Use the API endpoint:
+   ```bash
+   curl http://localhost:3000/api/events?userId=test-user-1
+   ```
+
+2. Or use Prisma Studio:
+   ```bash
+   cd packages/admin
+   npx prisma studio
+   ```
+   Navigate to the `GeofenceEvent` table
 
 ## Troubleshooting
 
@@ -196,3 +314,17 @@ const monitor = new GeofenceMonitor({
 **Map not loading**
 - Check your internet connection (Leaflet tiles require internet)
 - Look for errors in the browser console
+
+**Server Mode events not firing**
+- Ensure you've entered a User ID
+- Check admin app is running and database is connected
+- Verify you've moved >50 meters (significant movement threshold)
+- Check admin app console for server-side logs
+- Use browser network tab to verify `POST /api/events/position` requests
+
+**Adapters not working**
+- Check admin app `.env` for correct credentials
+- Verify environment variables are loaded (restart admin app)
+- Check admin app console for adapter error logs
+- All adapters fail gracefully - check console for specific errors
+- LoggerAdapter always works - check `GET /api/events` endpoint

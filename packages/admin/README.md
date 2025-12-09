@@ -57,6 +57,16 @@ NEXTAUTH_URL="http://localhost:3000"
 
 # Geofence API Key (for external applications)
 GEOFENCE_API_KEY="your-secure-api-key-here"  # Generate: openssl rand -hex 32
+
+# Event Adapters (optional)
+
+# Webhook Adapter - POST geofence events to this URL
+GEOFENCE_WEBHOOK_URL="https://your-webhook-endpoint.com/geofence-events"
+
+# HCL CDP Adapter - Send events to HCL Customer Data Platform
+CDP_API_KEY="your-cdp-api-key"
+CDP_PASS_KEY="your-cdp-pass-key"
+CDP_ENDPOINT="https://pl.dev.hxcd.now.hclsoftware.cloud"
 ```
 
 ## Database Setup
@@ -171,14 +181,53 @@ model User {
 
 ```prisma
 model Geofence {
-  id        String   @id @default(cuid())
+  id        String          @id @default(cuid())
   name      String
   latitude  Float
   longitude Float
-  radius    Int      // in meters
-  enabled   Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  radius    Float
+  enabled   Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  events    GeofenceEvent[] // Relation to logged events
+}
+```
+
+### UserGeofenceState Model
+
+Tracks active geofences per user for server-side evaluation:
+
+```prisma
+model UserGeofenceState {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  activeGeofenceIds String[] // Array of currently active geofence IDs
+  lastLatitude      Float
+  lastLongitude     Float
+  lastReportedAt    DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+```
+
+### GeofenceEvent Model
+
+Logs all geofence enter/exit events:
+
+```prisma
+model GeofenceEvent {
+  id         String   @id @default(cuid())
+  userId     String
+  eventType  String   // 'enter' or 'exit'
+  geofenceId String
+  geofence   Geofence @relation(fields: [geofenceId], references: [id], onDelete: Cascade)
+  latitude   Float
+  longitude  Float
+  accuracy   Float?
+  speed      Float?
+  heading    Float?
+  timestamp  DateTime
+  createdAt  DateTime @default(now())
 }
 ```
 
@@ -311,7 +360,7 @@ Delete a geofence.
 
 #### `GET /api/public/geofences`
 
-Public endpoint that returns only enabled geofences. Used by the SDK.
+Public endpoint that returns only enabled geofences. Used by the SDK in client-side evaluation mode.
 
 **Response:**
 
@@ -327,6 +376,160 @@ Public endpoint that returns only enabled geofences. Used by the SDK.
   }
 ]
 ```
+
+### Server-Side Evaluation API
+
+#### `POST /api/events/position`
+
+Position reporting endpoint for server-side geofence evaluation. Used by the SDK when `enableServerEvaluation: true` is configured.
+
+**Request body:**
+
+```json
+{
+  "userId": "user-123",
+  "latitude": 37.7749,
+  "longitude": -122.4194,
+  "accuracy": 10,
+  "timestamp": 1234567890000,
+  "speed": 2.5,
+  "heading": 180
+}
+```
+
+**Response:**
+
+```json
+{
+  "success": true,
+  "events": [
+    {
+      "type": "enter",
+      "geofence": {
+        "id": "clx...",
+        "name": "Downtown Store",
+        "latitude": 40.7128,
+        "longitude": -74.006,
+        "radius": 500
+      },
+      "timestamp": "2024-01-01T12:00:00.000Z"
+    }
+  ]
+}
+```
+
+**How it works:**
+1. SDK sends position when moved > threshold meters (default: 50m)
+2. Server evaluates geofences using Haversine distance formula
+3. Server compares current geofences vs last known state for the user
+4. Server detects transitions (enter/exit events)
+5. Server dispatches events to configured adapters (CDP, webhooks, database logger)
+6. Server updates user state in database
+7. Server returns events to SDK, which emits them locally
+
+#### `GET /api/events`
+
+View logged geofence events (requires authentication).
+
+**Query parameters:**
+- `userId` (optional): Filter by user ID
+- `eventType` (optional): Filter by event type ('enter' or 'exit')
+- `limit` (optional): Max number of events to return (default: 100)
+
+**Response:**
+
+```json
+{
+  "events": [
+    {
+      "id": "clx...",
+      "userId": "user-123",
+      "eventType": "enter",
+      "geofenceId": "clx...",
+      "geofence": {
+        "id": "clx...",
+        "name": "Downtown Store"
+      },
+      "latitude": 40.7128,
+      "longitude": -74.006,
+      "accuracy": 10,
+      "speed": 2.5,
+      "heading": 180,
+      "timestamp": "2024-01-01T12:00:00.000Z",
+      "createdAt": "2024-01-01T12:00:01.000Z"
+    }
+  ]
+}
+```
+
+## Server-Side Evaluation & Event Adapters
+
+The admin app supports server-side geofence evaluation with a **pluggable adapter system** for routing events to external systems.
+
+### How It Works
+
+When the SDK is configured with `enableServerEvaluation: true`:
+1. SDK sends position updates to `POST /api/events/position`
+2. Server evaluates geofences and detects transitions
+3. Server dispatches events to all enabled adapters in parallel
+4. Adapters route events to their respective destinations
+5. Server returns events to SDK
+
+### Built-In Adapters
+
+#### LoggerAdapter (Always Enabled)
+- Logs all events to the `GeofenceEvent` database table
+- Provides audit trail and event history
+- View events at `GET /api/events`
+
+#### WebhookAdapter (Optional)
+- POSTs events to a configurable webhook URL
+- Enable by setting `GEOFENCE_WEBHOOK_URL` environment variable
+- Sends JSON payload with event details
+
+**Configuration:**
+```bash
+GEOFENCE_WEBHOOK_URL="https://your-webhook-endpoint.com/geofence-events"
+```
+
+**Payload format:**
+```json
+{
+  "userId": "user-123",
+  "eventType": "enter",
+  "geofence": {
+    "id": "clx...",
+    "name": "Downtown Store",
+    "latitude": 40.7128,
+    "longitude": -74.006,
+    "radius": 500
+  },
+  "position": {
+    "latitude": 40.7128,
+    "longitude": -74.006,
+    "accuracy": 10,
+    "speed": 2.5,
+    "heading": 180
+  },
+  "timestamp": "2024-01-01T12:00:00.000Z"
+}
+```
+
+#### CDPAdapter (Optional)
+- Sends track events to HCL Customer Data Platform
+- Enable by setting `CDP_API_KEY` and `CDP_PASS_KEY` environment variables
+- Events appear as "HTTP API" source in CDP (not "JavaScript/Web")
+
+**Configuration:**
+```bash
+CDP_API_KEY="your-cdp-api-key"
+CDP_PASS_KEY="your-cdp-pass-key"
+CDP_ENDPOINT="https://pl.dev.hxcd.now.hclsoftware.cloud"
+```
+
+### Creating Custom Adapters
+
+See [docs/ADAPTERS.md](../../docs/ADAPTERS.md) for a comprehensive guide on implementing custom event adapters for Slack, email, analytics platforms, and more.
 
 ## Authentication
 
