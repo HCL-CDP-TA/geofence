@@ -1,68 +1,61 @@
 // Geofence CRUD API - List and Create
 
-import { NextResponse } from 'next/server';
-import { auth } from '@/src/lib/auth';
-import { prisma } from '@/src/lib/prisma';
-import { createGeofenceSchema } from '@/src/lib/validations';
+import { isAuthenticated } from "@/src/lib/api-auth"
+import { prisma } from "@/src/lib/prisma"
+import { createGeofenceSchema } from "@/src/lib/validations"
+import { corsJsonResponse, handleOptions } from "@/src/lib/cors"
+
+// OPTIONS /api/geofences - Handle CORS preflight
+export async function OPTIONS() {
+  return handleOptions()
+}
 
 // GET /api/geofences - List all geofences
 export async function GET(request: Request) {
   try {
-    // Check authentication
-    const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Check authentication (session or API key)
+    const authenticated = await isAuthenticated(request)
+    if (!authenticated) {
+      return corsJsonResponse({ error: "Unauthorized" }, { status: 401 })
     }
 
     // Fetch all geofences
     const geofences = await prisma.geofence.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
+      orderBy: { createdAt: "desc" },
+    })
 
-    return NextResponse.json({ geofences });
+    return corsJsonResponse({ geofences })
   } catch (error) {
-    console.error('Error fetching geofences:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error("Error fetching geofences:", error)
+    return corsJsonResponse({ error: "Internal server error" }, { status: 500 })
   }
 }
 
 // POST /api/geofences - Create a new geofence
 export async function POST(request: Request) {
   try {
-    // Check authentication
-    const session = await auth();
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Check authentication (session or API key)
+    const authenticated = await isAuthenticated(request)
+    if (!authenticated) {
+      return corsJsonResponse({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const body = await request.json();
+    const body = await request.json()
 
     // Validate input
-    const result = createGeofenceSchema.safeParse(body);
+    const result = createGeofenceSchema.safeParse(body)
     if (!result.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: result.error.issues },
-        { status: 400 }
-      );
+      return corsJsonResponse({ error: "Invalid input", details: result.error.issues }, { status: 400 })
     }
 
     // Create geofence
     const geofence = await prisma.geofence.create({
       data: result.data,
-    });
+    })
 
-    return NextResponse.json(
-      { geofence, message: 'Geofence created successfully' },
-      { status: 201 }
-    );
+    return corsJsonResponse({ geofence, message: "Geofence created successfully" }, { status: 201 })
   } catch (error) {
-    console.error('Error creating geofence:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error("Error creating geofence:", error)
+    return corsJsonResponse({ error: "Internal server error" }, { status: 500 })
   }
 }

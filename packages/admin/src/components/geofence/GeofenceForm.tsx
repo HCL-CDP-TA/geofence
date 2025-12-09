@@ -1,65 +1,78 @@
-'use client';
+"use client"
 
-import { useState, useEffect } from 'react';
-import { Button } from '../ui/Button';
+import { useState, useEffect } from "react"
+import { Button } from "../ui/Button"
 
 interface Geofence {
-  id: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  radius: number;
-  enabled: boolean;
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  radius: number
+  enabled: boolean
 }
 
 interface GeofenceFormProps {
-  geofence?: Geofence;
-  initialLat?: number;
-  initialLng?: number;
-  onSubmit: (data: Omit<Geofence, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  onCancel: () => void;
-  isLoading?: boolean;
+  geofence?: Geofence
+  initialLat?: number
+  initialLng?: number
+  initialRadius?: number
+  onSubmit: (data: Omit<Geofence, "id" | "createdAt" | "updatedAt">) => void
+  onCancel: () => void
+  onNameChange?: (name: string) => void
+  isLoading?: boolean
 }
 
 export function GeofenceForm({
   geofence,
   initialLat,
   initialLng,
+  initialRadius,
   onSubmit,
   onCancel,
+  onNameChange,
   isLoading = false,
 }: GeofenceFormProps) {
-  const [name, setName] = useState(geofence?.name || '');
-  const [latitude, setLatitude] = useState(
-    geofence?.latitude?.toString() || initialLat?.toString() || ''
-  );
-  const [longitude, setLongitude] = useState(
-    geofence?.longitude?.toString() || initialLng?.toString() || ''
-  );
-  const [radius, setRadius] = useState(geofence?.radius?.toString() || '100');
-  const [enabled, setEnabled] = useState(geofence?.enabled ?? true);
-  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [name, setName] = useState(geofence?.name || "")
+
+  const handleNameChange = (newName: string) => {
+    setName(newName)
+    if (onNameChange) {
+      onNameChange(newName)
+    }
+  }
+  const [latitude, setLatitude] = useState(geofence?.latitude?.toString() || initialLat?.toString() || "")
+  const [longitude, setLongitude] = useState(geofence?.longitude?.toString() || initialLng?.toString() || "")
+  const [radius, setRadius] = useState(geofence?.radius?.toString() || "100")
+  const [enabled, setEnabled] = useState(geofence?.enabled ?? true)
+  const [isGettingLocation, setIsGettingLocation] = useState(false)
 
   useEffect(() => {
     if (initialLat !== undefined && initialLng !== undefined && !geofence) {
-      setLatitude(initialLat.toFixed(6));
-      setLongitude(initialLng.toFixed(6));
+      setLatitude(initialLat.toFixed(6))
+      setLongitude(initialLng.toFixed(6))
     }
-  }, [initialLat, initialLng, geofence]);
+  }, [initialLat, initialLng, geofence])
+
+  useEffect(() => {
+    if (initialRadius !== undefined && !geofence) {
+      setRadius(initialRadius.toString())
+    }
+  }, [initialRadius, geofence])
 
   // Update form when geofence prop changes (e.g., from dragging)
   useEffect(() => {
     if (geofence) {
-      setLatitude(geofence.latitude.toString());
-      setLongitude(geofence.longitude.toString());
-      setRadius(geofence.radius.toString());
-      setEnabled(geofence.enabled);
-      setName(geofence.name);
+      setLatitude(geofence.latitude.toString())
+      setLongitude(geofence.longitude.toString())
+      setRadius(geofence.radius.toString())
+      setEnabled(geofence.enabled)
+      setName(geofence.name)
     }
-  }, [geofence?.latitude, geofence?.longitude, geofence?.radius, geofence?.enabled, geofence?.name]);
+  }, [geofence?.latitude, geofence?.longitude, geofence?.radius, geofence?.enabled, geofence?.name])
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+    e.preventDefault()
 
     onSubmit({
       name,
@@ -67,35 +80,35 @@ export function GeofenceForm({
       longitude: parseFloat(longitude),
       radius: parseFloat(radius),
       enabled,
-    });
-  };
+    })
+  }
 
   const handleUseCurrentLocation = () => {
     if (!navigator.geolocation) {
-      alert('Geolocation is not supported by your browser');
-      return;
+      alert("Geolocation is not supported by your browser")
+      return
     }
 
-    setIsGettingLocation(true);
+    setIsGettingLocation(true)
 
     navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setLatitude(position.coords.latitude.toFixed(6));
-        setLongitude(position.coords.longitude.toFixed(6));
-        setIsGettingLocation(false);
+      position => {
+        setLatitude(position.coords.latitude.toFixed(6))
+        setLongitude(position.coords.longitude.toFixed(6))
+        setIsGettingLocation(false)
       },
-      (error) => {
-        console.error('Error getting location:', error);
-        alert(`Failed to get location: ${error.message}`);
-        setIsGettingLocation(false);
+      error => {
+        console.error("Error getting location:", error)
+        alert(`Failed to get location: ${error.message}`)
+        setIsGettingLocation(false)
       },
       {
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 0,
-      }
-    );
-  };
+      },
+    )
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -108,7 +121,7 @@ export function GeofenceForm({
           type="text"
           required
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={e => handleNameChange(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Downtown Store"
         />
@@ -116,17 +129,14 @@ export function GeofenceForm({
 
       <div>
         <div className="flex items-center justify-between mb-1">
-          <label className="block text-sm font-medium text-gray-700">
-            Location
-          </label>
+          <label className="block text-sm font-medium text-gray-700">Location</label>
           <Button
             type="button"
             variant="secondary"
             size="sm"
             onClick={handleUseCurrentLocation}
-            disabled={isGettingLocation || isLoading}
-          >
-            {isGettingLocation ? 'Getting location...' : 'Use Current Location'}
+            disabled={isGettingLocation || isLoading}>
+            {isGettingLocation ? "Getting location..." : "Use Current Location"}
           </Button>
         </div>
 
@@ -141,7 +151,7 @@ export function GeofenceForm({
               step="any"
               required
               value={latitude}
-              onChange={(e) => setLatitude(e.target.value)}
+              onChange={e => setLatitude(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="40.7128"
             />
@@ -157,7 +167,7 @@ export function GeofenceForm({
               step="any"
               required
               value={longitude}
-              onChange={(e) => setLongitude(e.target.value)}
+              onChange={e => setLongitude(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="-74.0060"
             />
@@ -175,7 +185,7 @@ export function GeofenceForm({
           min="1"
           required
           value={radius}
-          onChange={(e) => setRadius(e.target.value)}
+          onChange={e => setRadius(e.target.value)}
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="100"
         />
@@ -186,7 +196,7 @@ export function GeofenceForm({
           id="enabled"
           type="checkbox"
           checked={enabled}
-          onChange={(e) => setEnabled(e.target.checked)}
+          onChange={e => setEnabled(e.target.checked)}
           className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
         />
         <label htmlFor="enabled" className="ml-2 block text-sm text-gray-700">
@@ -196,12 +206,12 @@ export function GeofenceForm({
 
       <div className="flex gap-2 pt-4">
         <Button type="submit" disabled={isLoading} className="flex-1">
-          {isLoading ? 'Saving...' : geofence ? 'Update' : 'Create'}
+          {isLoading ? "Saving..." : geofence ? "Update" : "Create"}
         </Button>
         <Button type="button" variant="secondary" onClick={onCancel} disabled={isLoading}>
           Cancel
         </Button>
       </div>
     </form>
-  );
+  )
 }

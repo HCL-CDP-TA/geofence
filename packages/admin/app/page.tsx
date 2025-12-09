@@ -1,180 +1,183 @@
-'use client';
+"use client"
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import { signOut } from 'next-auth/react';
-import dynamic from 'next/dynamic';
-import { GeofenceList } from '@/src/components/geofence/GeofenceList';
-import { GeofenceForm } from '@/src/components/geofence/GeofenceForm';
-import { Button } from '@/src/components/ui/Button';
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
+import { signOut } from "next-auth/react"
+import dynamic from "next/dynamic"
+import { GeofenceList } from "@/src/components/geofence/GeofenceList"
+import { GeofenceForm } from "@/src/components/geofence/GeofenceForm"
+import { Button } from "@/src/components/ui/Button"
 
 // Dynamic import to avoid SSR issues with Leaflet
-const Map = dynamic(() => import('@/src/components/map/LeafletMap').then((mod) => mod.Map), {
+const Map = dynamic(() => import("@/src/components/map/LeafletMap").then(mod => mod.Map), {
   ssr: false,
   loading: () => (
-    <div className="h-full w-full flex items-center justify-center bg-gray-100 rounded-lg">
-      Loading map...
-    </div>
+    <div className="h-full w-full flex items-center justify-center bg-gray-100 rounded-lg">Loading map...</div>
   ),
-});
+})
 
 interface Geofence {
-  id: string;
-  name: string;
-  latitude: number;
-  longitude: number;
-  radius: number;
-  enabled: boolean;
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  radius: number
+  enabled: boolean
 }
 
 export default function Dashboard() {
-  const router = useRouter();
-  const { data: session, status } = useSession();
-  const [geofences, setGeofences] = useState<Geofence[]>([]);
-  const [selectedGeofence, setSelectedGeofence] = useState<Geofence | null>(null);
-  const [isCreateFormVisible, setIsCreateFormVisible] = useState(false);
-  const [editingGeofence, setEditingGeofence] = useState<Geofence | null>(null);
-  const [clickedLocation, setClickedLocation] = useState<{ lat: number; lng: number } | null>(
-    null
-  );
-  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter()
+  const { data: session, status } = useSession()
+  const [geofences, setGeofences] = useState<Geofence[]>([])
+  const [selectedGeofence, setSelectedGeofence] = useState<Geofence | null>(null)
+  const [isCreateFormVisible, setIsCreateFormVisible] = useState(false)
+  const [editingGeofence, setEditingGeofence] = useState<Geofence | null>(null)
+  const [clickedLocation, setClickedLocation] = useState<{ lat: number; lng: number } | null>(null)
+  const [previewGeofence, setPreviewGeofence] = useState<{
+    latitude: number
+    longitude: number
+    radius: number
+  } | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (status === 'unauthenticated') {
-      router.push('/login');
+    if (status === "unauthenticated") {
+      router.push("/login")
     }
-  }, [status, router]);
+  }, [status, router])
 
   // Fetch geofences
   const fetchGeofences = async () => {
     try {
-      const response = await fetch('/api/geofences');
+      const response = await fetch("/api/geofences")
       if (response.ok) {
-        const data = await response.json();
-        setGeofences(data.geofences);
+        const data = await response.json()
+        setGeofences(data.geofences)
       }
     } catch (error) {
-      console.error('Error fetching geofences:', error);
+      console.error("Error fetching geofences:", error)
     }
-  };
+  }
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      fetchGeofences();
+    if (status === "authenticated") {
+      fetchGeofences()
     }
-  }, [status]);
+  }, [status])
 
   const handleMapClick = (lat: number, lng: number) => {
-    setClickedLocation({ lat, lng });
-    setIsCreateFormVisible(true);
-  };
+    setClickedLocation({ lat, lng })
+    setPreviewGeofence({ latitude: lat, longitude: lng, radius: 100, name: "" })
+    setIsCreateFormVisible(true)
+  }
 
-  const handleCreateGeofence = async (data: Omit<Geofence, 'id' | 'createdAt' | 'updatedAt'>) => {
-    setIsLoading(true);
+  const handleCreateGeofence = async (data: Omit<Geofence, "id" | "createdAt" | "updatedAt">) => {
+    setIsLoading(true)
     try {
-      const response = await fetch('/api/geofences', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/geofences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      });
+      })
 
       if (response.ok) {
-        await fetchGeofences();
-        setIsCreateFormVisible(false);
-        setClickedLocation(null);
+        await fetchGeofences()
+        setIsCreateFormVisible(false)
+        setClickedLocation(null)
+        setPreviewGeofence(null)
       } else {
-        alert('Failed to create geofence');
+        alert("Failed to create geofence")
       }
     } catch (error) {
-      console.error('Error creating geofence:', error);
-      alert('Error creating geofence');
+      console.error("Error creating geofence:", error)
+      alert("Error creating geofence")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
-  const handleUpdateGeofence = async (data: Omit<Geofence, 'id' | 'createdAt' | 'updatedAt'>) => {
-    if (!editingGeofence) return;
+  const handleUpdateGeofence = async (data: Omit<Geofence, "id" | "createdAt" | "updatedAt">) => {
+    if (!editingGeofence) return
 
-    setIsLoading(true);
+    setIsLoading(true)
     try {
       const response = await fetch(`/api/geofences/${editingGeofence.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
-      });
+      })
 
       if (response.ok) {
-        await fetchGeofences();
-        setEditingGeofence(null);
+        await fetchGeofences()
+        setEditingGeofence(null)
       } else {
-        alert('Failed to update geofence');
+        alert("Failed to update geofence")
       }
     } catch (error) {
-      console.error('Error updating geofence:', error);
-      alert('Error updating geofence');
+      console.error("Error updating geofence:", error)
+      alert("Error updating geofence")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
+  }
 
   const handleToggleEnabled = async (id: string, enabled: boolean) => {
     try {
       const response = await fetch(`/api/geofences/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabled }),
-      });
+      })
 
       if (response.ok) {
-        await fetchGeofences();
+        await fetchGeofences()
       }
     } catch (error) {
-      console.error('Error toggling geofence:', error);
+      console.error("Error toggling geofence:", error)
     }
-  };
+  }
 
   const handleDeleteGeofence = async (id: string) => {
     try {
       const response = await fetch(`/api/geofences/${id}`, {
-        method: 'DELETE',
-      });
+        method: "DELETE",
+      })
 
       if (response.ok) {
-        await fetchGeofences();
+        await fetchGeofences()
         if (selectedGeofence?.id === id) {
-          setSelectedGeofence(null);
+          setSelectedGeofence(null)
         }
       } else {
-        alert('Failed to delete geofence');
+        alert("Failed to delete geofence")
       }
     } catch (error) {
-      console.error('Error deleting geofence:', error);
-      alert('Error deleting geofence');
+      console.error("Error deleting geofence:", error)
+      alert("Error deleting geofence")
     }
-  };
+  }
 
   const handleEditClick = (geofence: Geofence) => {
-    setEditingGeofence(geofence);
-    setIsCreateFormVisible(false); // Hide create form if visible
-  };
+    setEditingGeofence(geofence)
+    setIsCreateFormVisible(false) // Hide create form if visible
+  }
 
   const handleSignOut = () => {
-    signOut({ callbackUrl: '/login' });
-  };
+    signOut({ callbackUrl: "/login" })
+  }
 
-  if (status === 'loading') {
+  if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Loading...</p>
       </div>
-    );
+    )
   }
 
-  if (status === 'unauthenticated') {
-    return null;
+  if (status === "unauthenticated") {
+    return null
   }
 
   return (
@@ -202,21 +205,31 @@ export default function Dashboard() {
             onGeofenceClick={setSelectedGeofence}
             selectedGeofenceId={selectedGeofence?.id}
             editingGeofence={editingGeofence}
+            isCreating={isCreateFormVisible}
+            previewGeofence={previewGeofence}
+            onPreviewRadiusChange={radius => {
+              if (previewGeofence) {
+                setPreviewGeofence({
+                  ...previewGeofence,
+                  radius: radius,
+                })
+              }
+            }}
             onGeofenceDrag={(lat, lng) => {
               if (editingGeofence) {
                 setEditingGeofence({
                   ...editingGeofence,
                   latitude: lat,
                   longitude: lng,
-                });
+                })
               }
             }}
-            onRadiusChange={(radius) => {
+            onRadiusChange={radius => {
               if (editingGeofence) {
                 setEditingGeofence({
                   ...editingGeofence,
                   radius: radius,
-                });
+                })
               }
             }}
           />
@@ -231,10 +244,20 @@ export default function Dashboard() {
               <GeofenceForm
                 initialLat={clickedLocation?.lat}
                 initialLng={clickedLocation?.lng}
+                initialRadius={previewGeofence?.radius}
                 onSubmit={handleCreateGeofence}
                 onCancel={() => {
-                  setIsCreateFormVisible(false);
-                  setClickedLocation(null);
+                  setIsCreateFormVisible(false)
+                  setClickedLocation(null)
+                  setPreviewGeofence(null)
+                }}
+                onNameChange={name => {
+                  if (previewGeofence) {
+                    setPreviewGeofence({
+                      ...previewGeofence,
+                      name: name,
+                    })
+                  }
                 }}
                 isLoading={isLoading}
               />
@@ -249,7 +272,15 @@ export default function Dashboard() {
                 geofence={editingGeofence}
                 onSubmit={handleUpdateGeofence}
                 onCancel={() => {
-                  setEditingGeofence(null);
+                  setEditingGeofence(null)
+                }}
+                onNameChange={name => {
+                  if (editingGeofence) {
+                    setEditingGeofence({
+                      ...editingGeofence,
+                      name: name,
+                    })
+                  }
                 }}
                 isLoading={isLoading}
               />
@@ -266,14 +297,14 @@ export default function Dashboard() {
               onEdit={handleEditClick}
               onDelete={handleDeleteGeofence}
               onCreate={() => {
-                setClickedLocation(null);
-                setEditingGeofence(null); // Clear edit form if visible
-                setIsCreateFormVisible(true);
+                setClickedLocation(null)
+                setEditingGeofence(null) // Clear edit form if visible
+                setIsCreateFormVisible(true)
               }}
             />
           </div>
         </div>
       </div>
     </div>
-  );
+  )
 }

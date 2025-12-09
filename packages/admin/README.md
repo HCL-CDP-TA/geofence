@@ -54,6 +54,9 @@ DATABASE_URL="postgresql://username:password@localhost:5432/geofence"
 # NextAuth
 NEXTAUTH_SECRET="your-secret-key-here"  # Generate: openssl rand -base64 32
 NEXTAUTH_URL="http://localhost:3000"
+
+# Geofence API Key (for external applications)
+GEOFENCE_API_KEY="your-secure-api-key-here"  # Generate: openssl rand -hex 32
 ```
 
 ## Database Setup
@@ -184,9 +187,11 @@ model Geofence {
 ### Authentication
 
 #### `POST /api/auth/register`
+
 Create a new user account.
 
 **Request body:**
+
 ```json
 {
   "email": "user@example.com",
@@ -196,6 +201,7 @@ Create a new user account.
 ```
 
 **Response:**
+
 ```json
 {
   "user": {
@@ -207,26 +213,56 @@ Create a new user account.
 ```
 
 #### `POST /api/auth/signin`
+
 Login (handled by NextAuth).
 
 #### `POST /api/auth/signout`
+
 Logout (handled by NextAuth).
 
 ### Geofences (Authenticated)
 
-All geofence routes require authentication. Include session cookie or use NextAuth's session.
+All geofence routes require authentication via either:
+
+1. **Session cookie** (for web dashboard)
+2. **API key** in Authorization header (for external applications)
+
+#### Authentication Methods
+
+**Method 1: Session Cookie (Web Dashboard)**
+
+```bash
+# Automatically handled by NextAuth session
+# No additional headers needed when logged in
+```
+
+**Method 2: API Key (External Apps)**
+
+```bash
+# Add Authorization header with Bearer token
+curl -H "Authorization: Bearer YOUR_GEOFENCE_API_KEY" \
+  http://localhost:3000/api/geofences
+```
+
+Set `GEOFENCE_API_KEY` in your `.env` file:
+
+```bash
+GEOFENCE_API_KEY="your-secure-api-key-here"  # Generate: openssl rand -hex 32
+```
 
 #### `GET /api/geofences`
+
 List all geofences.
 
 **Response:**
+
 ```json
 [
   {
     "id": "clx...",
     "name": "Downtown Store",
     "latitude": 40.7128,
-    "longitude": -74.0060,
+    "longitude": -74.006,
     "radius": 500,
     "enabled": true,
     "createdAt": "2024-01-01T00:00:00.000Z",
@@ -236,9 +272,11 @@ List all geofences.
 ```
 
 #### `POST /api/geofences`
+
 Create a new geofence.
 
 **Request body:**
+
 ```json
 {
   "name": "New Store",
@@ -250,9 +288,11 @@ Create a new geofence.
 ```
 
 #### `PUT /api/geofences/[id]`
+
 Update an existing geofence.
 
 **Request body:** (all fields optional)
+
 ```json
 {
   "name": "Updated Name",
@@ -264,21 +304,24 @@ Update an existing geofence.
 ```
 
 #### `DELETE /api/geofences/[id]`
+
 Delete a geofence.
 
 ### Public API
 
 #### `GET /api/public/geofences`
+
 Public endpoint that returns only enabled geofences. Used by the SDK.
 
 **Response:**
+
 ```json
 [
   {
     "id": "clx...",
     "name": "Downtown Store",
     "latitude": 40.7128,
-    "longitude": -74.0060,
+    "longitude": -74.006,
     "radius": 500,
     "enabled": true
   }
@@ -309,14 +352,18 @@ The app uses NextAuth.js v5 with the following configuration:
 ## Components
 
 ### GeofenceList
+
 Displays geofences in a table with:
+
 - Toggle switches to enable/disable
 - Edit buttons to modify geofence properties
 - Delete buttons with confirmation
 - Responsive design
 
 ### GeofenceForm
+
 Modal form for creating/editing geofences with:
+
 - Name input
 - Latitude/longitude inputs
 - Radius input (meters)
@@ -324,7 +371,9 @@ Modal form for creating/editing geofences with:
 - Validation with error messages
 
 ### LeafletMap
+
 Interactive map component featuring:
+
 - Geofence visualization as circles
 - Click-to-create functionality
 - Center marker with coordinates
