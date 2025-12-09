@@ -145,6 +145,36 @@ await monitor.start();
 
 See [packages/sdk/README.md](packages/sdk/README.md) for complete SDK documentation.
 
+### 4. Server-Authoritative Mode (Advanced)
+
+The SDK now supports **server-side geofence evaluation** for improved security and integration with marketing platforms.
+
+```typescript
+import { GeofenceMonitor } from '@geofence/sdk';
+
+const monitor = new GeofenceMonitor({
+  apiUrl: 'http://localhost:3000',
+  userId: 'user-123',                    // Required for server mode
+  enableServerEvaluation: true,          // Enable server-side mode
+  significantMovementThreshold: 50,      // Only report when moved >50m
+});
+
+monitor.on('enter', (geofence) => {
+  console.log(`Entered: ${geofence.name}`);
+  // Events come from server evaluation
+});
+
+await monitor.start();
+```
+
+**Server-Side Benefits:**
+- Server evaluates geofences (source of truth)
+- Position only sent when moved >50m (reduces network traffic)
+- Events routed to pluggable adapters (CDP, webhooks, database)
+- Suitable for martech integrations and analytics
+
+See [docs/ADAPTERS.md](docs/ADAPTERS.md) for implementing custom event adapters.
+
 ## Project Structure
 
 ```
@@ -220,7 +250,8 @@ GET    /api/geofences                  # List geofences (auth required)
 POST   /api/geofences                  # Create geofence (auth required)
 PUT    /api/geofences/[id]             # Update geofence (auth required)
 DELETE /api/geofences/[id]             # Delete geofence (auth required)
-GET    /api/public/geofences           # Public endpoint for SDK
+GET    /api/public/geofences           # Public endpoint for SDK (client mode)
+POST   /api/events/position            # Position reporting (server evaluation mode)
 ```
 
 ## Environment Variables
@@ -228,9 +259,18 @@ GET    /api/public/geofences           # Public endpoint for SDK
 Create `packages/admin/.env`:
 
 ```bash
+# Database
 DATABASE_URL="postgresql://user:password@localhost:5432/geofence"
+
+# Authentication
 NEXTAUTH_SECRET="your-secret-key-here"  # Generate with: openssl rand -base64 32
 NEXTAUTH_URL="http://localhost:3000"
+
+# Optional: Server Evaluation Mode Adapters
+GEOFENCE_WEBHOOK_URL="https://your-webhook-endpoint.com/events"  # Webhook adapter
+CDP_API_KEY="your-cdp-api-key"                                    # HCL CDP adapter
+CDP_PASS_KEY="your-cdp-passkey"                                   # HCL CDP adapter
+CDP_ENDPOINT="https://your-cdp-instance.com/api"                  # HCL CDP adapter
 ```
 
 ## Deployment

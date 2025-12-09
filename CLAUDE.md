@@ -27,6 +27,9 @@ This is a geofencing monorepo that consists of:
 - **Test Mode**: Supports `testMode: true` option to enable manual position control via `setTestPosition(lat, lng)`
 - **Manual Refresh**: `refreshGeofences()` method to update geofences without restarting monitor
 - **Configurable Polling**: `pollingInterval` option controls how often position is checked (default: 10000ms)
+- **Evaluation Modes**:
+  - **Client-Side** (default): SDK fetches geofences and evaluates locally
+  - **Server-Side**: SDK sends position to server, which evaluates and returns events (requires `userId` and `enableServerEvaluation: true`)
 
 ### Test App (packages/test-app)
 - **Purpose**: Interactive test environment for the SDK with dual-mode testing capability
@@ -34,16 +37,20 @@ This is a geofencing monorepo that consists of:
 - **Features**:
   - **Manual Mode**: Set position via input fields, map clicks, or quick position buttons
   - **GPS Mode**: Real browser geolocation with map auto-following (works with Chrome DevTools Sensors tab)
+  - **Client/Server Evaluation Toggle**: Switch between client-side and server-side evaluation modes
   - Interactive Leaflet map with geofence visualization
   - Real-time event log showing enter/exit/position/error events
   - Geofence list with active state indicators
   - Manual geofence refresh capability
-- **Usage**: Comprehensive testing environment for geofence entry/exit without requiring physical movement
+  - User ID configuration for server-side testing
+- **Usage**: Comprehensive testing environment for geofence entry/exit without requiring physical movement, plus server-side integration testing
 
 ### Database Schema
 Located in [packages/admin/prisma/schema.prisma](packages/admin/prisma/schema.prisma):
 - **User**: Authentication users with bcrypt-hashed passwords
 - **Geofence**: Geographic zones with latitude, longitude, radius, and enabled status
+- **UserGeofenceState**: Tracks active geofences per user for server-side evaluation
+- **GeofenceEvent**: Logs all enter/exit events (used by LoggerAdapter)
 
 ### API Routes
 All routes in [packages/admin/app/api](packages/admin/app/api):
@@ -53,7 +60,29 @@ All routes in [packages/admin/app/api](packages/admin/app/api):
 - `POST /api/geofences` - Create geofence (authenticated)
 - `PUT /api/geofences/[id]` - Update geofence (authenticated)
 - `DELETE /api/geofences/[id]` - Delete geofence (authenticated)
-- `GET /api/public/geofences` - Public endpoint for SDK to fetch enabled geofences
+- `GET /api/public/geofences` - Public endpoint for SDK to fetch enabled geofences (client-side mode)
+- `POST /api/events/position` - Position reporting for server-side geofence evaluation (server-side mode)
+- `GET /api/events` - View logged geofence events with filtering (authenticated)
+
+### Event Adapter System (Server-Side Mode)
+
+The server-side evaluation mode uses a **pluggable adapter pattern** to route geofence events to external systems:
+
+**Core Components**:
+- `GeofenceEvaluator` ([packages/admin/src/lib/services/geofence-evaluator.ts](packages/admin/src/lib/services/geofence-evaluator.ts)) - Evaluates position against geofences, maintains user state, dispatches events to adapters
+- Adapter types ([packages/admin/src/lib/adapters/types.ts](packages/admin/src/lib/adapters/types.ts)) - `EventAdapter` interface for pluggable integrations
+- Adapter registry ([packages/admin/src/lib/adapters/index.ts](packages/admin/src/lib/adapters/index.ts)) - `createAdapterConfig()` initializes all adapters, `dispatchEvent()` calls adapters in parallel
+
+**Built-in Adapters**:
+1. **LoggerAdapter** ([packages/admin/src/lib/adapters/logger.ts](packages/admin/src/lib/adapters/logger.ts)) - Always enabled, logs events to `GeofenceEvent` table
+2. **WebhookAdapter** ([packages/admin/src/lib/adapters/webhook.ts](packages/admin/src/lib/adapters/webhook.ts)) - POSTs to `GEOFENCE_WEBHOOK_URL` if configured
+3. **CDPAdapter** ([packages/admin/src/lib/adapters/cdp.ts](packages/admin/src/lib/adapters/cdp.ts)) - Sends track events to HCL CDP if `CDP_API_KEY` and `CDP_PASS_KEY` configured
+
+**Adding Custom Adapters**:
+- Implement `EventAdapter` interface (`onEnter()`, `onExit()`)
+- Register in `createAdapterConfig()`
+- Configure via environment variables
+- See [docs/ADAPTERS.md](docs/ADAPTERS.md) for detailed guide
 
 ### Authentication Flow
 NextAuth v5 configuration in [packages/admin/src/lib/auth.ts](packages/admin/src/lib/auth.ts):
@@ -107,16 +136,32 @@ npm run dev -w test-app     # Alternative: start with workspace flag
 ## Environment Setup
 
 The admin app requires a `.env` file at [packages/admin/.env](packages/admin/.env):
-```
+```bash
+# Database
 DATABASE_URL="postgresql://user:password@localhost:5432/geofence"
+
+# NextAuth
 NEXTAUTH_SECRET="your-secret-key"
 NEXTAUTH_URL="http://localhost:3000"
+
+# Event Adapters (optional - only needed for server-side evaluation mode)
+
+# Webhook Adapter - POST geofence events to this URL
+GEOFENCE_WEBHOOK_URL="https://your-webhook-endpoint.com/geofence-events"
+
+# HCL CDP Adapter - Send events to HCL Customer Data Platform
+CDP_API_KEY="your-cdp-api-key"
+CDP_PASS_KEY="your-cdp-pass-key"
+CDP_ENDPOINT="https://pl.dev.hxcd.now.hclsoftware.cloud"
 ```
 
 ## Key Implementation Details
 
 ### SDK Usage Pattern
-The SDK is designed for browser integration. Example usage:
+
+The SDK supports two evaluation modes:
+
+**Client-Side Mode (Default)**:
 ```typescript
 import { GeofenceMonitor } from '@geofence/sdk';
 
@@ -136,6 +181,39 @@ await monitor.start();
 // Manually refresh geofences when they may have changed
 await monitor.refreshGeofences();
 ```
+
+**Server-Side Mode (For Martech Integrations)**:
+```typescript
+import { GeofenceMonitor } from '@geofence/sdk';
+
+const monitor = new GeofenceMonitor({
+  apiUrl: 'http://localhost:3000',
+  userId: 'user-123',                    // Required for server mode
+  enableServerEvaluation: true,          // Enable server-authoritative mode
+  significantMovementThreshold: 50,      // Only report when moved >50m (default: 50)
+  pollingInterval: 10000,
+  enableHighAccuracy: true,
+  debug: false,
+  testMode: false
+});
+
+monitor.on('enter', (geofence) => {
+  console.log('Entered:', geofence.name);
+  // Event came from server evaluation
+  // Server has already fired adapters (CDP, webhooks, etc.)
+});
+
+monitor.on('exit', (geofence) => console.log('Exited:', geofence.name));
+
+await monitor.start();
+```
+
+**Server-Side Mode Behavior**:
+- Client polls GPS every `pollingInterval` ms
+- Position sent to server only when moved > `significantMovementThreshold` meters
+- Server evaluates geofences and returns enter/exit events
+- Server dispatches events to configured adapters (CDP, webhooks, database logger)
+- Client receives events from server response and emits locally
 
 **Note**: For scalability considerations and best practices, see [SCALABILITY.md](SCALABILITY.md).
 
