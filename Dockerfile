@@ -38,14 +38,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd --system --gid 1001 nodejs
 RUN useradd --system --uid 1001 --gid nodejs --create-home nextjs
 
-# Copy prisma for migrations - copy all Prisma packages and dependencies
+# Copy prisma schema and generated client
 COPY --from=builder --chown=nextjs:nodejs /app/packages/admin/prisma ./prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_modules/prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/.bin
-# Additional Prisma CLI dependencies
-COPY --from=builder --chown=nextjs:nodejs /app/node_modules/valibot ./node_modules/valibot
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma/client ./node_modules/@prisma/client
+
+# Install Prisma CLI for migrations (cleaner than copying all transitive deps)
+RUN npm install -g prisma@7
 
 # Copy standalone Next.js build
 COPY --from=builder --chown=nextjs:nodejs /app/packages/admin/.next/standalone ./
