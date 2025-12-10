@@ -1,3 +1,6 @@
 {
-  ".": "1.0.8"
+  ".": "1.0.8",
+  "packages/sdk": "1.0.8",
+  "packages/admin": "1.0.8",
+  "packages/test-app": "1.0.8"
 }

@@ -8,6 +8,7 @@ import dynamic from "next/dynamic"
 import { GeofenceList } from "@/src/components/geofence/GeofenceList"
 import { GeofenceForm } from "@/src/components/geofence/GeofenceForm"
 import { Button } from "@/src/components/ui/Button"
+import { VERSION } from "@/src/lib/version"
 
 // Dynamic import to avoid SSR issues with Leaflet
 const Map = dynamic(() => import("@/src/components/map/LeafletMap").then(mod => mod.Map), {
@@ -186,7 +187,10 @@ export default function Dashboard() {
       {/* Header */}
       <header className="bg-white shadow-sm z-10">
         <div className="px-6 py-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-gray-900">Geofence Management</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">Geofence Management</h1>
+            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">v{VERSION}</span>
+          </div>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">{session?.user?.email}</span>
             <Button variant="secondary" size="sm" onClick={handleSignOut}>

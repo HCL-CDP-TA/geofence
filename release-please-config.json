@@ -2,7 +2,7 @@
   "release-type": "node",
   "packages": {
     ".": {
-      "package-name": "geofence",
+      "package-name": "geofence-monorepo",
       "include-v-in-tag": true,
       "bump-minor-pre-major": true,
       "bump-patch-for-minor-pre-major": true,
@@ -17,6 +17,27 @@
         { "type": "perf", "section": "Performance Improvements", "hidden": false },
         { "type": "test", "section": "Tests", "hidden": true }
       ]
+    },
+    "packages/sdk": {
+      "package-name": "@hcl-cdp-ta/geofence-sdk",
+      "include-v-in-tag": false,
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "changelog-path": "CHANGELOG.md"
+    },
+    "packages/admin": {
+      "package-name": "admin",
+      "include-v-in-tag": false,
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "changelog-path": "CHANGELOG.md"
+    },
+    "packages/test-app": {
+      "package-name": "@geofence/test-app",
+      "include-v-in-tag": false,
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": true,
+      "changelog-path": "CHANGELOG.md"
     }
   }
 }
