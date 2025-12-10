@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.1](https://github.com/HCL-CDP-TA/geofence/compare/admin-v1.1.0...admin-v1.1.1) (2025-12-10)
+
+
+### Maintenance
+
+* **main:** release admin 1.1.0 ([137c3f2](https://github.com/HCL-CDP-TA/geofence/commit/137c3f2b4040425676297d9ab854280a5ac9fd66))
+* **main:** release admin 1.1.0 ([5cbed38](https://github.com/HCL-CDP-TA/geofence/commit/5cbed380bdc03046a3ae67a419ab746dec78ae2c))
+
 ## [1.1.0](https://github.com/HCL-CDP-TA/geofence/compare/admin-v1.0.8...admin-v1.1.0) (2025-12-10)
 
 
