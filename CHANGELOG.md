@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/HCL-CDP-TA/geofence/compare/v1.0.2...v1.0.3) (2025-12-10)
+
+
+### Bug Fixes
+
+* deploy prisma dependencies ([9ea8446](https://github.com/HCL-CDP-TA/geofence/commit/9ea84462bf71ae37ea9bf8e61ba40a3e511005af))
+
 ## [1.0.2](https://github.com/HCL-CDP-TA/geofence/compare/v1.0.1...v1.0.2) (2025-12-10)
 
 
