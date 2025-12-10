@@ -327,9 +327,39 @@ This is a monorepo using npm workspaces. When making changes:
 3. Update relevant README files
 4. Run `npm run lint` to check for issues
 
+## Releases and Publishing
+
+This monorepo uses automated release management with independent versioning for each package:
+
+- **SDK**: Published to npm as `@hcl-cdp-ta/geofence-sdk`
+- **Admin**: GitHub releases only (private package)
+
+### Publishing SDK Changes
+
+Changes to the SDK are automatically published to npm:
+
+```bash
+# Make SDK changes
+git commit -m "fix(sdk): your bug fix"
+# or
+git commit -m "feat(sdk): your new feature"
+git push origin main
+```
+
+Release-please will create a release PR → merge it → SDK publishes automatically to npm.
+
+**Version bumps:**
+- `fix:` commits → patch version (1.0.0 → 1.0.1)
+- `feat:` commits → minor version (1.0.0 → 1.1.0)
+- Breaking changes → major version (1.0.0 → 2.0.0)
+
+For complete details, see [docs/RELEASES.md](docs/RELEASES.md).
+
 ## Documentation
 
+- [Release Guide](docs/RELEASES.md) - Automated release and publishing workflow
 - [SDK Documentation](packages/sdk/README.md) - Complete SDK API reference
+- [Event Adapters](docs/ADAPTERS.md) - Creating custom geofence event adapters
 - [CLAUDE.md](CLAUDE.md) - Detailed project documentation for AI assistants
 - [SCALABILITY.md](SCALABILITY.md) - Scaling strategies and best practices
 

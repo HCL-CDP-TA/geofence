@@ -487,6 +487,41 @@ UI components in [packages/admin/src/components](packages/admin/src/components):
    - **Manual Mode**: Set positions via input fields, map clicks, or quick buttons
    - **GPS Mode**: Use Chrome DevTools Sensors tab to emulate GPS locations - map auto-follows position
 
+## Releases and Publishing
+
+This monorepo uses **release-please** for automated versioning and publishing. Each package (SDK and Admin) versions independently based on conventional commits.
+
+### Quick Reference
+
+**To release SDK changes:**
+```bash
+git commit -m "fix(sdk): your bug fix description"
+# or
+git commit -m "feat(sdk): your new feature description"
+git push origin main
+```
+→ Release-please creates PR → Merge PR → SDK auto-published to npm
+
+**To release admin changes:**
+```bash
+git commit -m "feat(admin): your feature description"
+git push origin main
+```
+→ Release-please creates PR → Merge PR → GitHub release only (no npm publish)
+
+**Commit format:**
+- `fix(scope):` → Patch version bump (1.0.0 → 1.0.1)
+- `feat(scope):` → Minor version bump (1.0.0 → 1.1.0)
+- `feat(scope)!:` or `BREAKING CHANGE:` → Major version bump (1.0.0 → 2.0.0)
+
+**Key points:**
+- Packages version independently (SDK can be v1.2.5 while Admin is v1.1.3)
+- SDK changes auto-publish to npm when release PR is merged
+- Admin changes create GitHub releases only (admin is private)
+- Release-please detects which packages changed based on file paths
+
+**For complete details, see [docs/RELEASES.md](docs/RELEASES.md)**
+
 ## Important Notes
 
 - The admin app uses Next.js 16 App Router - all pages are in `packages/admin/app/`

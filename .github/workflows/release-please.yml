@@ -15,10 +15,41 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      sdk-release-created: ${{ steps.release.outputs['packages/sdk--release_created'] }}
+      sdk-tag-name: ${{ steps.release.outputs['packages/sdk--tag_name'] }}
     steps:
       - uses: googleapis/release-please-action@v4
+        id: release
         with:
-          # This tells release-please to look for a Node.js project
-          release-type: node
           # Use personal access token instead of GITHUB_TOKEN
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+  publish-sdk:
+    name: Publish SDK to npm
+    runs-on: ubuntu-latest
+    needs: release-please
+    if: ${{ needs.release-please.outputs.sdk-release-created == 'true' }}
+
+    permissions:
+      contents: read
+      id-token: write # Required for npm provenance verification
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          registry-url: "https://registry.npmjs.org/"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build SDK package
+        run: npm run build -w sdk
+
+      - name: Publish SDK to npm
+        run: cd packages/sdk && npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
