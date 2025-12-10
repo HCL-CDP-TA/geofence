@@ -9,6 +9,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY packages/admin/package.json ./packages/admin/
 COPY packages/admin/prisma ./packages/admin/prisma/
+COPY packages/admin/prisma.config.ts ./packages/admin/
 
 # Install dependencies
 RUN npm ci
@@ -38,13 +39,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN groupadd --system --gid 1001 nodejs
 RUN useradd --system --uid 1001 --gid nodejs --create-home nextjs
 
-# Copy prisma schema and generated client
+# Copy prisma schema, config, and generated client
 COPY --from=builder --chown=nextjs:nodejs /app/packages/admin/prisma ./prisma
+COPY --from=builder --chown=nextjs:nodejs /app/packages/admin/prisma.config.ts ./prisma.config.ts
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
-# Install Prisma CLI for migrations (cleaner than copying all transitive deps)
-RUN npm install -g prisma@7
+# Install Prisma CLI and dotenv for migrations (required by prisma.config.ts)
+RUN npm install -g prisma@7 dotenv
 
 # Copy standalone Next.js build
 COPY --from=builder --chown=nextjs:nodejs /app/packages/admin/.next/standalone ./
