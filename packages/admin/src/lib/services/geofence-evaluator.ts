@@ -27,10 +27,47 @@ export interface EvaluationResult {
   }>;
 }
 
+// In-memory locks to prevent concurrent evaluations for the same user
+const userLocks = new Map<string, Promise<EvaluationResult>>();
+
+// Singleton adapter config (avoid re-initializing adapters on every request)
+let adapterConfigInstance: ReturnType<typeof createAdapterConfig> | null = null;
+function getAdapterConfig() {
+  if (!adapterConfigInstance) {
+    adapterConfigInstance = createAdapterConfig();
+  }
+  return adapterConfigInstance;
+}
+
 export class GeofenceEvaluator {
-  private adapterConfig = createAdapterConfig();
+  private adapterConfig = getAdapterConfig();
 
   async evaluatePosition(input: PositionInput): Promise<EvaluationResult> {
+    const { userId, latitude, longitude, accuracy, timestamp, speed, heading } = input;
+
+    // Check if there's already an evaluation in progress for this user
+    const existingLock = userLocks.get(userId);
+    if (existingLock) {
+      console.log(`[GeofenceEvaluator] Evaluation already in progress for user ${userId}, waiting...`);
+      // Wait for the existing evaluation to complete and return empty result
+      await existingLock;
+      return { events: [] };
+    }
+
+    // Create a new lock for this user
+    const evaluationPromise = this.performEvaluation(input);
+    userLocks.set(userId, evaluationPromise);
+
+    try {
+      const result = await evaluationPromise;
+      return result;
+    } finally {
+      // Release the lock
+      userLocks.delete(userId);
+    }
+  }
+
+  private async performEvaluation(input: PositionInput): Promise<EvaluationResult> {
     const { userId, latitude, longitude, accuracy, timestamp, speed, heading } = input;
 
     // 1. Fetch all enabled geofences
