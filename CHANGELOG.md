@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.9](https://github.com/HCL-CDP-TA/geofence/compare/v1.0.8...v1.0.9) (2025-12-10)
+
+
+### Bug Fixes
+
+* added favicon ([e2dd52a](https://github.com/HCL-CDP-TA/geofence/commit/e2dd52ac9fdba3668cd6ac89a303f548b51e548b))
+* versioning ([378db1e](https://github.com/HCL-CDP-TA/geofence/commit/378db1eade402ff436e26227544c2583949a57b6))
+
 ## [1.0.8](https://github.com/HCL-CDP-TA/geofence/compare/v1.0.7...v1.0.8) (2025-12-10)
 
 
