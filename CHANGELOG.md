@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/HCL-CDP-TA/geofence/compare/v1.0.0...v1.0.1) (2025-12-10)
+
+
+### Bug Fixes
+
+* docker-compose network ([171bd06](https://github.com/HCL-CDP-TA/geofence/commit/171bd0672a97f11f8ac0f9cd942e0578c5011f60))
+
 ## 1.0.0 (2025-12-10)
 
 
