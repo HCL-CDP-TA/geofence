@@ -38,6 +38,7 @@ export default function Dashboard() {
     latitude: number
     longitude: number
     radius: number
+    name?: string
   } | null>(null)
   const [isLoading, setIsLoading] = useState(false)
 

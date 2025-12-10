@@ -51,7 +51,7 @@ export function Map({
     // Import Leaflet dynamically to avoid SSR issues
     const initMap = async () => {
       const L = (await import("leaflet")).default
-      await import("leaflet/dist/leaflet.css")
+      // CSS is imported in layout.tsx or globals.css instead
 
       if (!containerRef.current || mapRef.current) return
 
@@ -179,14 +179,14 @@ export function Map({
         }).addTo(map)
 
         // Update circle position during drag without re-rendering
-        draggableMarker.on("drag", e => {
+        draggableMarker.on("drag", (e: any) => {
           const { lat, lng } = e.target.getLatLng()
           circle.setLatLng([lat, lng])
           marker.setLatLng([lat, lng])
         })
 
         // Only update state when drag is complete
-        draggableMarker.on("dragend", e => {
+        draggableMarker.on("dragend", (e: any) => {
           const { lat, lng } = e.target.getLatLng()
           onGeofenceDrag(lat, lng)
         })
@@ -232,14 +232,14 @@ export function Map({
         }).addTo(map)
 
         // Update circle size during drag without re-rendering
-        radiusHandle.on("drag", e => {
+        radiusHandle.on("drag", (e: any) => {
           const handlePos = e.target.getLatLng()
           const newRadius = map.distance([lat, lng], [handlePos.lat, handlePos.lng])
           circle.setRadius(newRadius)
         })
 
         // Only update state when drag is complete
-        radiusHandle.on("dragend", e => {
+        radiusHandle.on("dragend", (e: any) => {
           const handlePos = e.target.getLatLng()
           const newRadius = Math.round(map.distance([lat, lng], [handlePos.lat, handlePos.lng]))
           if (onRadiusChange) {
@@ -328,14 +328,14 @@ export function Map({
       }).addTo(map)
 
       // Update circle size during drag
-      radiusHandle.on("drag", e => {
+      radiusHandle.on("drag", (e: any) => {
         const handlePos = e.target.getLatLng()
         const newRadius = map.distance([latitude, longitude], [handlePos.lat, handlePos.lng])
         previewCircle.setRadius(newRadius)
       })
 
       // Update state when drag is complete
-      radiusHandle.on("dragend", e => {
+      radiusHandle.on("dragend", (e: any) => {
         const handlePos = e.target.getLatLng()
         const newRadius = Math.round(map.distance([latitude, longitude], [handlePos.lat, handlePos.lng]))
         onPreviewRadiusChange(newRadius)
