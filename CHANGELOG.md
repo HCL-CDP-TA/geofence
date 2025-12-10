@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5](https://github.com/HCL-CDP-TA/geofence/compare/v1.0.4...v1.0.5) (2025-12-10)
+
+
+### Bug Fixes
+
+* yet more deploy fixes ([d50f873](https://github.com/HCL-CDP-TA/geofence/commit/d50f873a1231ce47d9c84ac494d3c17bee53a20f))
+
 ## [1.0.4](https://github.com/HCL-CDP-TA/geofence/compare/v1.0.3...v1.0.4) (2025-12-10)
 
 
