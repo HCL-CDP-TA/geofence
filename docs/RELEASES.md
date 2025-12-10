@@ -114,8 +114,8 @@ git push origin main
 - Tag created: `@hcl-cdp-ta/geofence-sdk-v1.0.9`
 - GitHub release created with changelog
 - `publish-sdk` job runs:
-  1. `npm ci` - Install dependencies
-  2. `npm run build -w sdk` - Build SDK
+  1. `npm install` - Install dependencies
+  2. `npm run build -w @hcl-cdp-ta/geofence-sdk` - Build SDK
   3. `npm publish --access public --provenance` - Publish to npm
 - **SDK now live on npm**: `@hcl-cdp-ta/geofence-sdk@1.0.9`
 
@@ -300,8 +300,8 @@ If you need to publish manually:
 
 ```bash
 # From repository root
-npm ci
-npm run build -w sdk
+npm install
+npm run build -w @hcl-cdp-ta/geofence-sdk
 cd packages/sdk
 npm publish --access public
 cd ../..

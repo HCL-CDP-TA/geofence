@@ -91,12 +91,12 @@ npm run build -w admin         # Build for production
 npx prisma studio -w admin     # Open database GUI
 
 # SDK
-npm run build -w sdk           # Build SDK
-npm run dev -w sdk             # Build in watch mode
+npm run build -w @hcl-cdp-ta/geofence-sdk   # Build SDK
+npm run dev -w @hcl-cdp-ta/geofence-sdk     # Build in watch mode
 
 # Test app
-npm run dev -w test-app        # Start test environment
-npm run build -w test-app      # Build test app
+npm run dev -w @geofence/test-app           # Start test environment
+npm run build -w @geofence/test-app         # Build test app
 ```
 
 ## Usage

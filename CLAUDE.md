@@ -123,14 +123,14 @@ npx prisma studio -w admin           # Open Prisma Studio UI
 
 ### SDK (packages/sdk)
 ```bash
-npm run build -w sdk        # Build SDK (outputs to dist/)
-npm run dev -w sdk          # Build SDK in watch mode
+npm run build -w @hcl-cdp-ta/geofence-sdk  # Build SDK (outputs to dist/)
+npm run dev -w @hcl-cdp-ta/geofence-sdk    # Build SDK in watch mode
 ```
 
 ### Test App (packages/test-app)
 ```bash
-npm run dev:test            # Start test app (from root)
-npm run dev -w test-app     # Alternative: start with workspace flag
+npm run dev:test                         # Start test app (from root)
+npm run dev -w @geofence/test-app        # Alternative: start with workspace flag
 ```
 
 ## Environment Setup
@@ -481,7 +481,7 @@ UI components in [packages/admin/src/components](packages/admin/src/components):
 
 1. **Database Setup**: Create PostgreSQL database, configure `DATABASE_URL`, run `npx prisma migrate dev -w admin`
 2. **Start Dev**: Run `npm run dev` from root to start admin app
-3. **SDK Development**: Use `npm run dev -w sdk` for watch mode when developing SDK features
+3. **SDK Development**: Use `npm run dev -w @hcl-cdp-ta/geofence-sdk` for watch mode when developing SDK features
 4. **Testing Geofences**: Use the admin UI at `http://localhost:3000` (requires login)
 5. **SDK Testing**: Use `npm run dev:test` to start the test app
    - **Manual Mode**: Set positions via input fields, map clicks, or quick buttons
