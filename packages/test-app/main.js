@@ -16,6 +16,8 @@ let currentPositionMarker = null
 let geofenceCircles = []
 let currentGeofences = new Set()
 let currentMode = "manual" // 'manual' or 'gps'
+let evaluationMode = "client" // 'client' or 'server'
+let userId = "test-user-1"
 
 // DOM Elements
 const startBtn = document.getElementById("startBtn")
@@ -34,6 +36,11 @@ const manualModeBtn = document.getElementById("manualModeBtn")
 const gpsModeBtn = document.getElementById("gpsModeBtn")
 const modeDescription = document.getElementById("modeDescription")
 const positionControlCard = document.getElementById("positionControlCard")
+const userIdInput = document.getElementById("userIdInput")
+const clientModeBtn = document.getElementById("clientModeBtn")
+const serverModeBtn = document.getElementById("serverModeBtn")
+const evaluationModeDescription = document.getElementById("evaluationModeDescription")
+const serverModeInfo = document.getElementById("serverModeInfo")
 
 // Initialize map
 function initMap() {
@@ -53,12 +60,21 @@ function initMap() {
 
 // Initialize SDK
 function initSDK(mode = "manual") {
-  monitor = new GeofenceMonitor({
+  const options = {
     apiUrl: "http://localhost:3000",
     pollingInterval: 1000,
     debug: true,
     testMode: mode === "manual",
-  })
+  }
+
+  // Add server evaluation options if in server mode
+  if (evaluationMode === "server") {
+    options.userId = userId
+    options.enableServerEvaluation = true
+    options.significantMovementThreshold = 50
+  }
+
+  monitor = new GeofenceMonitor(options)
 
   // Event listeners
   monitor.on("enter", geofence => {
@@ -421,6 +437,39 @@ document.querySelectorAll(".quick-position-btn").forEach(btn => {
   })
 })
 
+// Switch between client and server evaluation mode
+function switchEvaluationMode(newMode) {
+  if (newMode === evaluationMode) return
+
+  evaluationMode = newMode
+  userId = userIdInput.value || "test-user-1"
+
+  // Update UI
+  if (newMode === "client") {
+    clientModeBtn.classList.add("active")
+    serverModeBtn.classList.remove("active")
+    serverModeInfo.style.display = "none"
+    evaluationModeDescription.textContent = "Geofences evaluated client-side"
+    addEventLog("position", "Switched to Client-Side Evaluation")
+  } else {
+    clientModeBtn.classList.remove("active")
+    serverModeBtn.classList.add("active")
+    serverModeInfo.style.display = "block"
+    evaluationModeDescription.textContent = `Server-side evaluation (User: ${userId})`
+    addEventLog("position", `Switched to Server-Side Evaluation (User: ${userId})`)
+  }
+
+  // Reinitialize SDK
+  const wasRunning = monitor && monitor.getStatus().isRunning
+  if (wasRunning) {
+    monitor.stop()
+  }
+  initSDK(currentMode)
+  if (wasRunning) {
+    startMonitoring()
+  }
+}
+
 // Event listeners
 startBtn.addEventListener("click", startMonitoring)
 stopBtn.addEventListener("click", stopMonitoring)
@@ -432,6 +481,21 @@ clearLogBtn.addEventListener("click", clearEventLog)
 // Mode toggle listeners
 manualModeBtn.addEventListener("click", () => switchMode("manual"))
 gpsModeBtn.addEventListener("click", () => switchMode("gps"))
+
+// Evaluation mode toggle listeners
+clientModeBtn.addEventListener("click", () => switchEvaluationMode("client"))
+serverModeBtn.addEventListener("click", () => switchEvaluationMode("server"))
+
+// User ID input change listener
+userIdInput.addEventListener("change", e => {
+  userId = e.target.value || "test-user-1"
+  if (evaluationMode === "server") {
+    // Prompt to restart if running
+    if (monitor && monitor.getStatus().isRunning) {
+      addEventLog("position", "Restart monitor to apply new userId")
+    }
+  }
+})
 
 // Allow Enter key in position inputs
 latitudeInput.addEventListener("keypress", e => {

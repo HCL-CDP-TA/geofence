@@ -5,8 +5,10 @@ import type {
   Geofence,
   GeofenceEvent,
   MonitorStatus,
+  PositionReport,
+  PositionReportResponse,
 } from './types';
-import { isPointInGeofence } from './utils/distance';
+import { isPointInGeofence, calculateDistance } from './utils/distance';
 
 type EventListener = (...args: any[]) => void;
 
@@ -20,18 +22,32 @@ export class GeofenceMonitor {
   private watchId: number | null = null;
   private eventListeners: Map<string, EventListener[]> = new Map();
   private testPosition: { latitude: number; longitude: number } | null = null;
+  private lastReportedPosition: { latitude: number; longitude: number } | null = null;
+  private serverEvaluationEnabled: boolean = false;
 
   constructor(options: GeofenceMonitorOptions) {
+    // Validate server evaluation options
+    if (options.enableServerEvaluation && !options.userId) {
+      throw new Error('userId is required when enableServerEvaluation is true');
+    }
+
     this.options = {
       pollingInterval: 10000,
       enableHighAccuracy: true,
       debug: false,
       testMode: false,
+      enableServerEvaluation: false,
+      significantMovementThreshold: 50,
       ...options,
-    };
+    } as Required<GeofenceMonitorOptions>;
+
+    this.serverEvaluationEnabled = this.options.enableServerEvaluation;
 
     if (this.options.debug) {
       console.log('[GeofenceMonitor] Initialized with options:', this.options);
+      if (this.serverEvaluationEnabled) {
+        console.log('[GeofenceMonitor] Server-side evaluation enabled for user:', this.options.userId);
+      }
     }
   }
 
@@ -314,7 +330,18 @@ export class GeofenceMonitor {
   /**
    * Process position and check for geofence entry/exit
    */
-  private processPosition(position: GeolocationPosition): void {
+  private async processPosition(position: GeolocationPosition): Promise<void> {
+    if (this.serverEvaluationEnabled) {
+      await this.handleServerEvaluation(position);
+    } else {
+      this.processPositionClientSide(position);
+    }
+  }
+
+  /**
+   * Client-side position processing (original logic)
+   */
+  private processPositionClientSide(position: GeolocationPosition): void {
     const { latitude, longitude } = position.coords;
 
     if (this.options.debug) {
@@ -355,5 +382,94 @@ export class GeofenceMonitor {
     }
 
     this.currentGeofences = newCurrentGeofences;
+  }
+
+  /**
+   * Server-side evaluation handler
+   */
+  private async handleServerEvaluation(position: GeolocationPosition): Promise<void> {
+    const { latitude, longitude, accuracy, speed, heading } = position.coords;
+
+    // Check if movement is significant enough to report
+    if (!this.shouldReportPosition(latitude, longitude)) {
+      if (this.options.debug) {
+        console.log('[GeofenceMonitor] Movement below threshold, skipping server report');
+      }
+      return;
+    }
+
+    // Report position to server
+    try {
+      const report: PositionReport = {
+        userId: this.options.userId!,
+        latitude,
+        longitude,
+        accuracy,
+        timestamp: position.timestamp,
+        speed,
+        heading,
+      };
+
+      const response = await this.reportPositionToServer(report);
+
+      // Update last reported position
+      this.lastReportedPosition = { latitude, longitude };
+
+      // Emit events received from server
+      if (response.events && response.events.length > 0) {
+        for (const event of response.events) {
+          if (event.type === 'enter') {
+            this.currentGeofences.add(event.geofence.id);
+            this.emit('enter', event.geofence);
+          } else if (event.type === 'exit') {
+            this.currentGeofences.delete(event.geofence.id);
+            this.emit('exit', event.geofence);
+          }
+        }
+      }
+
+      if (this.options.debug) {
+        console.log(`[GeofenceMonitor] Server returned ${response.events.length} events`);
+      }
+    } catch (error) {
+      this.emit('error', error as Error);
+    }
+  }
+
+  /**
+   * Check if position should be reported to server
+   */
+  private shouldReportPosition(lat: number, lng: number): boolean {
+    if (!this.lastReportedPosition) {
+      return true; // Always report first position
+    }
+
+    const distance = calculateDistance(
+      this.lastReportedPosition.latitude,
+      this.lastReportedPosition.longitude,
+      lat,
+      lng
+    );
+
+    return distance >= this.options.significantMovementThreshold!;
+  }
+
+  /**
+   * Report position to server for evaluation
+   */
+  private async reportPositionToServer(report: PositionReport): Promise<PositionReportResponse> {
+    const response = await fetch(`${this.options.apiUrl}/api/events/position`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(report),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to report position: ${response.statusText}`);
+    }
+
+    return await response.json();
   }
 }

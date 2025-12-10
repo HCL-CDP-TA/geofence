@@ -78,12 +78,16 @@ new GeofenceMonitor(options: GeofenceMonitorOptions)
 
 **Options:**
 
-| Option               | Type      | Default  | Description                                |
-| -------------------- | --------- | -------- | ------------------------------------------ |
-| `apiUrl`             | `string`  | Required | Base URL of your geofence API              |
-| `pollingInterval`    | `number`  | `10000`  | How often to check location (milliseconds) |
-| `enableHighAccuracy` | `boolean` | `true`   | Use GPS for high accuracy positioning      |
-| `debug`              | `boolean` | `false`  | Enable debug logging to console            |
+| Option                          | Type      | Default  | Description                                                      |
+| ------------------------------- | --------- | -------- | ---------------------------------------------------------------- |
+| `apiUrl`                        | `string`  | Required | Base URL of your geofence API                                    |
+| `pollingInterval`               | `number`  | `10000`  | How often to check location (milliseconds)                       |
+| `enableHighAccuracy`            | `boolean` | `true`   | Use GPS for high accuracy positioning                            |
+| `debug`                         | `boolean` | `false`  | Enable debug logging to console                                  |
+| `testMode`                      | `boolean` | `false`  | Enable manual position control for testing                       |
+| `userId`                        | `string`  | -        | User identifier (required for server-side evaluation)            |
+| `enableServerEvaluation`        | `boolean` | `false`  | Enable server-side geofence evaluation                           |
+| `significantMovementThreshold`  | `number`  | `50`     | Only report position when moved this many meters (server mode)   |
 
 #### Methods
 
@@ -182,6 +186,125 @@ interface MonitorStatus {
   isRunning: boolean
   currentGeofences: Geofence[]
   lastPosition: GeolocationPosition | null
+}
+```
+
+## Evaluation Modes
+
+The SDK supports two evaluation modes:
+
+### Client-Side Evaluation (Default)
+
+The SDK fetches geofences from the server and evaluates them locally in the browser. This is the simplest mode and suitable for most use cases.
+
+**How it works:**
+1. SDK fetches all enabled geofences once at startup
+2. Position is polled from browser's Geolocation API
+3. Distance calculations performed locally using Haversine formula
+4. Enter/exit events fired immediately when transitions detected
+5. No network requests during monitoring (only initial geofence fetch)
+
+**Example:**
+```typescript
+const monitor = new GeofenceMonitor({
+  apiUrl: 'https://api.example.com',
+  pollingInterval: 10000,
+  enableHighAccuracy: true,
+  debug: false,
+});
+
+monitor.on('enter', (geofence) => {
+  // Event fired client-side
+  console.log('Entered:', geofence.name);
+});
+
+await monitor.start();
+```
+
+### Server-Side Evaluation (Server-Authoritative)
+
+The SDK sends position updates to the server, which evaluates geofences and returns events. This mode enables server-side integrations like webhooks and CDP event routing.
+
+**How it works:**
+1. Position is polled from browser's Geolocation API
+2. Position sent to server only when moved > threshold meters (default: 50m)
+3. Server evaluates geofences and maintains user state
+4. Server dispatches events to configured adapters (CDP, webhooks, database)
+5. Server returns events in response, which SDK emits locally
+
+**Example:**
+```typescript
+const monitor = new GeofenceMonitor({
+  apiUrl: 'https://api.example.com',
+  userId: 'user-123',                    // Required for server mode
+  enableServerEvaluation: true,          // Enable server-authoritative mode
+  significantMovementThreshold: 50,      // Only report when moved >50m (default)
+  pollingInterval: 10000,
+  enableHighAccuracy: true,
+  debug: false,
+});
+
+monitor.on('enter', (geofence) => {
+  // Event came from server evaluation
+  // Server has already fired adapters (CDP, webhooks, etc.)
+  console.log('Entered:', geofence.name);
+});
+
+monitor.on('exit', (geofence) => {
+  console.log('Exited:', geofence.name);
+});
+
+await monitor.start();
+```
+
+**Server-Side Benefits:**
+- Events appear as "HTTP API" source in CDP/analytics tools (not "JavaScript/Web")
+- Server can route events to multiple destinations via adapters (webhooks, CDP, email, etc.)
+- Centralized event logging and audit trail
+- Reduced network traffic via movement threshold
+- Server is source of truth for geofence state
+
+**Requirements for Server Mode:**
+- Backend must implement `POST /api/events/position` endpoint
+- `userId` must be provided in SDK configuration
+- Server must maintain user geofence state in database
+
+**API Endpoint Requirements:**
+
+The server must implement the following endpoint:
+
+**`POST {apiUrl}/api/events/position`**
+
+Request body:
+```json
+{
+  "userId": "user-123",
+  "latitude": 37.7749,
+  "longitude": -122.4194,
+  "accuracy": 10,
+  "timestamp": 1234567890000,
+  "speed": 2.5,
+  "heading": 180
+}
+```
+
+Response:
+```json
+{
+  "success": true,
+  "events": [
+    {
+      "type": "enter",
+      "geofence": {
+        "id": "abc123",
+        "name": "Downtown Store",
+        "latitude": 40.7128,
+        "longitude": -74.006,
+        "radius": 500
+      },
+      "timestamp": "2024-01-01T12:00:00.000Z"
+    }
+  ]
 }
 ```
 

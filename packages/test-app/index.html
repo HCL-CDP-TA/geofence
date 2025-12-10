@@ -308,6 +308,36 @@
           <button class="button button-danger" id="stopBtn" style="margin-top: 10px;" disabled>Stop Monitoring</button>
         </div>
 
+        <!-- Server Evaluation -->
+        <div class="card">
+          <h2>Server Evaluation</h2>
+          <div class="form-group">
+            <label for="userIdInput">User ID</label>
+            <input type="text" id="userIdInput" placeholder="e.g., user-123" value="test-user-1">
+          </div>
+
+          <div style="margin-bottom: 15px; padding: 10px; background: #f8f8f8; border-radius: 4px;">
+            <label style="display: block; font-size: 14px; color: #555; margin-bottom: 8px; font-weight: 500;">
+              Evaluation Mode
+            </label>
+            <div style="display: flex; gap: 10px;">
+              <button class="mode-toggle-btn active" id="clientModeBtn">
+                Client Mode
+              </button>
+              <button class="mode-toggle-btn" id="serverModeBtn">
+                Server Mode
+              </button>
+            </div>
+            <div style="font-size: 11px; color: #666; margin-top: 5px;" id="evaluationModeDescription">
+              Geofences evaluated client-side
+            </div>
+          </div>
+
+          <div id="serverModeInfo" style="display: none; padding: 10px; background: #e3f2fd; border-radius: 4px; font-size: 12px; line-height: 1.5;">
+            <strong>Server Mode:</strong> Position sent to server only when moved >50m. Server evaluates geofences and returns events.
+          </div>
+        </div>
+
         <!-- Position Control -->
         <div class="card" id="positionControlCard">
           <h2>Set Position</h2>
