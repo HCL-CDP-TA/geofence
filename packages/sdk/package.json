@@ -1,7 +1,7 @@
 {
   "name": "@hcl-cdp-ta/geofence-sdk",
   "version": "1.1.1",
-  "description": "Geofencing SDK for browser-based geolocation tracking",
+  "description": "Geofencing SDK for web-based geolocation tracking",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
