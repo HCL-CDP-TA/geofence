@@ -38,4 +38,5 @@ services:
 
 networks:
   default:
-    name: geofence-network
+    name: multitenant-network
+    external: true
