@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.2](https://github.com/HCL-CDP-TA/geofence/compare/geofence-sdk-v1.1.1...geofence-sdk-v1.1.2) (2025-12-10)
+
+
+### Bug Fixes
+
+* **api:** package.json ([8f184a4](https://github.com/HCL-CDP-TA/geofence/commit/8f184a4bd7fac02b9771890069b98f85791e930f))
+
 ## [1.1.1](https://github.com/HCL-CDP-TA/geofence/compare/geofence-sdk-v1.1.0...geofence-sdk-v1.1.1) (2025-12-10)
 
 
