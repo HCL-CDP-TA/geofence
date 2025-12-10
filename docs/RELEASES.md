@@ -264,6 +264,27 @@ Release-please uses **file paths** to determine which package changed:
 - Click the failed workflow run
 - Check "Publish SDK to npm" step logs
 
+### Lock file out of sync
+
+**Error:** `npm ci` fails with "Missing: @hcl-cdp-ta/geofence-sdk@X.Y.Z from lock file"
+
+**Cause:** Release-please updates `package.json` versions but doesn't automatically update the root `package-lock.json`.
+
+**Solution 1 (Automatic - Recommended):**
+The `.github/workflows/update-lockfile.yml` workflow automatically updates the lock file on release PRs. Just wait for it to commit, then merge the PR.
+
+**Solution 2 (Manual - If workflow disabled):**
+After merging a release PR:
+```bash
+git pull origin main
+npm install
+git add package-lock.json
+git commit -m "chore: update lock file after release"
+git push origin main
+```
+
+**Note:** The publish workflow now uses `npm install` instead of `npm ci` to handle this automatically, but keeping the lock file in sync is still good practice.
+
 ### Need to skip CI
 
 If you need to push without triggering releases:
