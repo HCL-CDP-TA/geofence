@@ -53,7 +53,7 @@ if [ -z "$DB_EXISTS" ]; then
 
   # Run migrations for new database
   echo "Running Prisma migrations..."
-  npx prisma migrate deploy
+  /app/node_modules/.bin/prisma migrate deploy
   echo "Migrations completed!"
 else
   echo "Database '$DB_NAME' already exists."
@@ -86,7 +86,7 @@ EOSQL
   # Always run migrations for existing databases
   # prisma migrate deploy is idempotent - it only applies pending migrations
   echo "Running Prisma migrations..."
-  npx prisma migrate deploy
+  /app/node_modules/.bin/prisma migrate deploy
   echo "Migrations completed!"
 fi
 
