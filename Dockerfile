@@ -44,6 +44,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_module
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/.bin
+# Additional Prisma CLI dependencies
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules/valibot ./node_modules/valibot
 
 # Copy standalone Next.js build
 COPY --from=builder --chown=nextjs:nodejs /app/packages/admin/.next/standalone ./
