@@ -62,7 +62,7 @@ function initMap() {
 function initSDK(mode = "manual") {
   const options = {
     apiUrl: "http://localhost:3000",
-    pollingInterval: 1000,
+    pollingInterval: 5000, // 5 seconds - more reasonable for server-side evaluation
     debug: true,
     testMode: mode === "manual",
   }

@@ -24,6 +24,9 @@ export class GeofenceMonitor {
   private testPosition: { latitude: number; longitude: number } | null = null;
   private lastReportedPosition: { latitude: number; longitude: number } | null = null;
   private serverEvaluationEnabled: boolean = false;
+  private serverCallInProgress: boolean = false;
+  private lastServerReportTime: number = 0;
+  private positionProcessingInProgress: boolean = false;
 
   constructor(options: GeofenceMonitorOptions) {
     // Validate server evaluation options
@@ -44,6 +47,7 @@ export class GeofenceMonitor {
     this.serverEvaluationEnabled = this.options.enableServerEvaluation;
 
     if (this.options.debug) {
+      console.log('[GeofenceMonitor] 🔧 SDK VERSION WITH RACE CONDITION FIX LOADED 🔧');
       console.log('[GeofenceMonitor] Initialized with options:', this.options);
       if (this.serverEvaluationEnabled) {
         console.log('[GeofenceMonitor] Server-side evaluation enabled for user:', this.options.userId);
@@ -164,9 +168,10 @@ export class GeofenceMonitor {
       console.log(`[GeofenceMonitor] Test position set: ${latitude}, ${longitude}`);
     }
 
-    // Immediately check geofences with new position
+    // Immediately check geofences with new position (don't await to not block caller)
     if (this.isRunning) {
-      this.processPosition(mockPosition);
+      // Use void to explicitly ignore the promise (fire and forget)
+      void this.processPosition(mockPosition);
     }
   }
 
@@ -331,10 +336,23 @@ export class GeofenceMonitor {
    * Process position and check for geofence entry/exit
    */
   private async processPosition(position: GeolocationPosition): Promise<void> {
-    if (this.serverEvaluationEnabled) {
-      await this.handleServerEvaluation(position);
-    } else {
-      this.processPositionClientSide(position);
+    // Prevent concurrent position processing (especially important in test mode with rapid setTestPosition calls)
+    if (this.positionProcessingInProgress) {
+      if (this.options.debug) {
+        console.log('[GeofenceMonitor] Position processing already in progress, skipping');
+      }
+      return;
+    }
+
+    this.positionProcessingInProgress = true;
+    try {
+      if (this.serverEvaluationEnabled) {
+        await this.handleServerEvaluation(position);
+      } else {
+        this.processPositionClientSide(position);
+      }
+    } finally {
+      this.positionProcessingInProgress = false;
     }
   }
 
@@ -390,6 +408,26 @@ export class GeofenceMonitor {
   private async handleServerEvaluation(position: GeolocationPosition): Promise<void> {
     const { latitude, longitude, accuracy, speed, heading } = position.coords;
 
+    // Prevent concurrent server calls (race condition protection)
+    if (this.serverCallInProgress) {
+      if (this.options.debug) {
+        console.log('[GeofenceMonitor] Server call already in progress, skipping');
+      }
+      return;
+    }
+
+    // Rate limiting: Enforce minimum 5 second interval between server reports
+    const now = Date.now();
+    const timeSinceLastReport = now - this.lastServerReportTime;
+    const MIN_REPORT_INTERVAL = 5000; // 5 seconds
+
+    if (this.lastServerReportTime > 0 && timeSinceLastReport < MIN_REPORT_INTERVAL) {
+      if (this.options.debug) {
+        console.log(`[GeofenceMonitor] Rate limit: ${Math.ceil((MIN_REPORT_INTERVAL - timeSinceLastReport) / 1000)}s until next report allowed`);
+      }
+      return;
+    }
+
     // Check if movement is significant enough to report
     if (!this.shouldReportPosition(latitude, longitude)) {
       if (this.options.debug) {
@@ -399,6 +437,7 @@ export class GeofenceMonitor {
     }
 
     // Report position to server
+    this.serverCallInProgress = true;
     try {
       const report: PositionReport = {
         userId: this.options.userId!,
@@ -410,21 +449,55 @@ export class GeofenceMonitor {
         heading,
       };
 
+      if (this.options.debug) {
+        console.log(`[GeofenceMonitor] Sending position to server: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+      }
+
       const response = await this.reportPositionToServer(report);
 
-      // Update last reported position
-      this.lastReportedPosition = { latitude, longitude };
+      if (this.options.debug) {
+        console.log(`[GeofenceMonitor] Server response received:`, response);
+      }
 
-      // Emit events received from server
+      // Update last reported position and timestamp
+      this.lastReportedPosition = { latitude, longitude };
+      this.lastServerReportTime = Date.now();
+
+      // Emit events received from server (dedupe against local state)
       if (response.events && response.events.length > 0) {
         for (const event of response.events) {
           if (event.type === 'enter') {
-            this.currentGeofences.add(event.geofence.id);
-            this.emit('enter', event.geofence);
+            // Only emit if not already tracked as inside this geofence
+            if (!this.currentGeofences.has(event.geofence.id)) {
+              if (this.options.debug) {
+                console.log(`[GeofenceMonitor] ✓ Emitting ENTER event for: ${event.geofence.name} (currently in ${this.currentGeofences.size} geofences)`);
+              }
+              this.currentGeofences.add(event.geofence.id);
+              this.emit('enter', event.geofence);
+            } else if (this.options.debug) {
+              console.log(`[GeofenceMonitor] ✗ Skipping duplicate ENTER event for: ${event.geofence.name}`);
+            }
           } else if (event.type === 'exit') {
-            this.currentGeofences.delete(event.geofence.id);
-            this.emit('exit', event.geofence);
+            // Only emit if currently tracked as inside this geofence
+            if (this.currentGeofences.has(event.geofence.id)) {
+              if (this.options.debug) {
+                console.log(`[GeofenceMonitor] ✓ Emitting EXIT event for: ${event.geofence.name} (currently in ${this.currentGeofences.size} geofences)`);
+              }
+              this.currentGeofences.delete(event.geofence.id);
+              this.emit('exit', event.geofence);
+            } else if (this.options.debug) {
+              console.log(`[GeofenceMonitor] ✗ Skipping duplicate EXIT event for: ${event.geofence.name}`);
+            }
           }
+        }
+
+        // If we received events, enforce a longer cooldown to prevent boundary oscillation
+        // Reset the rate limit timer to enforce minimum 15 seconds before next report
+        const EVENT_COOLDOWN = 15000; // 15 seconds after an event
+        this.lastServerReportTime = Date.now() + (EVENT_COOLDOWN - MIN_REPORT_INTERVAL);
+
+        if (this.options.debug) {
+          console.log(`[GeofenceMonitor] Event cooldown: waiting 15s before next position report`);
         }
       }
 
@@ -433,6 +506,8 @@ export class GeofenceMonitor {
       }
     } catch (error) {
       this.emit('error', error as Error);
+    } finally {
+      this.serverCallInProgress = false;
     }
   }
 
