@@ -1,0 +1,343 @@
+{
+  "info": {
+    "name": "Geofence Admin API",
+    "description": "Complete API collection for the Geofence Admin application. Includes authentication, geofence management, server-side evaluation, and event logging endpoints.\n\n## Authentication\n\nThe API supports two authentication methods:\n\n1. **API Key**: Add `Authorization: Bearer YOUR_API_KEY` header (set `GEOFENCE_API_KEY` in admin .env)\n2. **Session**: Login via `/api/auth/register` and `/api/auth/signin` (handled by NextAuth)\n\n## Environment Variables\n\nSet these variables in Postman:\n- `baseUrl`: Your API base URL (e.g., http://localhost:3000)\n- `apiKey`: Your API key for Bearer authentication\n- `geofenceId`: A geofence ID (auto-populated from responses)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "geofence-admin"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"John Doe\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "description": "Register a new user account. Passwords are hashed with bcrypt before storage.\n\n**Request Body:**\n- `email` (string, required): Valid email address\n- `password` (string, required): Minimum 6 characters\n- `name` (string, optional): User's display name\n\n**Response (201):**\n```json\n{\n  \"user\": {\n    \"id\": \"uuid\",\n    \"email\": \"user@example.com\",\n    \"name\": \"John Doe\",\n    \"createdAt\": \"2025-01-01T00:00:00.000Z\"\n  },\n  \"message\": \"User created successfully\"\n}\n```\n\n**Errors:**\n- 400: Invalid input\n- 409: Email already exists\n- 500: Server error"
+          },
+          "response": []
+        },
+        {
+          "name": "Login (NextAuth)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/callback/credentials",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "callback", "credentials"]
+            },
+            "description": "Login via NextAuth credentials provider. This sets a session cookie for authenticated requests.\n\n**Note:** For API-only usage, use API Key authentication instead (set Authorization header).\n\n**Request Body:**\n- `email` (string, required): User's email\n- `password` (string, required): User's password"
+          },
+          "response": []
+        }
+      ],
+      "description": "User registration and authentication endpoints. Use API key authentication for programmatic access."
+    },
+    {
+      "name": "Geofences (Authenticated)",
+      "item": [
+        {
+          "name": "List All Geofences",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "description": "API Key authentication"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/geofences",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "geofences"]
+            },
+            "description": "Get all geofences (both enabled and disabled).\n\n**Authentication:** Required (API key or session)\n\n**Response (200):**\n```json\n{\n  \"geofences\": [\n    {\n      \"id\": \"uuid\",\n      \"name\": \"Store Location\",\n      \"latitude\": 37.7749,\n      \"longitude\": -122.4194,\n      \"radius\": 100,\n      \"enabled\": true,\n      \"createdAt\": \"2025-01-01T00:00:00.000Z\",\n      \"updatedAt\": \"2025-01-01T00:00:00.000Z\"\n    }\n  ]\n}\n```\n\n**Errors:**\n- 401: Unauthorized\n- 500: Server error"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Auto-populate geofenceId from response",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.geofences && response.geofences.length > 0) {",
+                  "        pm.environment.set('geofenceId', response.geofences[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Geofence",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "description": "API Key authentication"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Downtown Office\",\n  \"latitude\": 37.7749,\n  \"longitude\": -122.4194,\n  \"radius\": 100,\n  \"enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/geofences",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "geofences"]
+            },
+            "description": "Create a new geofence.\n\n**Authentication:** Required (API key or session)\n\n**Request Body:**\n- `name` (string, required): Geofence name\n- `latitude` (number, required): Latitude (-90 to 90)\n- `longitude` (number, required): Longitude (-180 to 180)\n- `radius` (number, required): Radius in meters (minimum 1)\n- `enabled` (boolean, optional): Default is true\n\n**Response (201):**\n```json\n{\n  \"geofence\": {\n    \"id\": \"uuid\",\n    \"name\": \"Downtown Office\",\n    \"latitude\": 37.7749,\n    \"longitude\": -122.4194,\n    \"radius\": 100,\n    \"enabled\": true,\n    \"createdAt\": \"2025-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2025-01-01T00:00:00.000Z\"\n  },\n  \"message\": \"Geofence created successfully\"\n}\n```\n\n**Errors:**\n- 400: Invalid input\n- 401: Unauthorized\n- 500: Server error"
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Auto-populate geofenceId from response",
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.geofence && response.geofence.id) {",
+                  "        pm.environment.set('geofenceId', response.geofence.id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update Geofence",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "description": "API Key authentication"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Downtown Office (Updated)\",\n  \"enabled\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/geofences/{{geofenceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "geofences", "{{geofenceId}}"]
+            },
+            "description": "Update an existing geofence. All fields are optional.\n\n**Authentication:** Required (API key or session)\n\n**URL Parameters:**\n- `id`: Geofence UUID\n\n**Request Body (all optional):**\n- `name` (string): Geofence name\n- `latitude` (number): Latitude (-90 to 90)\n- `longitude` (number): Longitude (-180 to 180)\n- `radius` (number): Radius in meters (minimum 1)\n- `enabled` (boolean): Enable/disable geofence\n\n**Response (200):**\n```json\n{\n  \"geofence\": {\n    \"id\": \"uuid\",\n    \"name\": \"Downtown Office (Updated)\",\n    \"latitude\": 37.7749,\n    \"longitude\": -122.4194,\n    \"radius\": 100,\n    \"enabled\": false,\n    \"createdAt\": \"2025-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2025-01-01T00:00:00.000Z\"\n  },\n  \"message\": \"Geofence updated successfully\"\n}\n```\n\n**Errors:**\n- 400: Invalid input\n- 401: Unauthorized\n- 404: Geofence not found\n- 500: Server error"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Geofence",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "description": "API Key authentication"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/geofences/{{geofenceId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "geofences", "{{geofenceId}}"]
+            },
+            "description": "Delete a geofence permanently.\n\n**Authentication:** Required (API key or session)\n\n**URL Parameters:**\n- `id`: Geofence UUID\n\n**Response (200):**\n```json\n{\n  \"message\": \"Geofence deleted successfully\"\n}\n```\n\n**Errors:**\n- 401: Unauthorized\n- 404: Geofence not found\n- 500: Server error"
+          },
+          "response": []
+        }
+      ],
+      "description": "CRUD operations for geofence management. All endpoints require authentication."
+    },
+    {
+      "name": "Public Endpoints",
+      "item": [
+        {
+          "name": "Get Enabled Geofences (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/public/geofences",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "public", "geofences"]
+            },
+            "description": "Get all enabled geofences. Used by the SDK for client-side geofence evaluation.\n\n**Authentication:** None required (public endpoint)\n\n**Caching:** Cached for 5 minutes (300s) with stale-while-revalidate\n\n**Response (200):**\n```json\n{\n  \"geofences\": [\n    {\n      \"id\": \"uuid\",\n      \"name\": \"Store Location\",\n      \"latitude\": 37.7749,\n      \"longitude\": -122.4194,\n      \"radius\": 100\n    }\n  ]\n}\n```\n\n**Note:** Only returns enabled geofences. Does not include `enabled` field, `createdAt`, or `updatedAt`.\n\n**Errors:**\n- 500: Server error"
+          },
+          "response": []
+        }
+      ],
+      "description": "Public endpoints that don't require authentication. Used by the SDK."
+    },
+    {
+      "name": "Server-Side Evaluation",
+      "item": [
+        {
+          "name": "Report Position (Server Evaluation)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"appId\": \"my-app-id\",\n  \"userId\": \"user-123\",\n  \"latitude\": 37.7749,\n  \"longitude\": -122.4194,\n  \"accuracy\": 10,\n  \"timestamp\": 1704067200000,\n  \"speed\": null,\n  \"heading\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events/position",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "position"]
+            },
+            "description": "Report user position for server-side geofence evaluation. The server evaluates position against geofences and dispatches events to configured adapters (CDP, webhooks, logger).\n\n**Authentication:** None required (public endpoint)\n\n**Use Case:** When SDK is configured with `enableServerEvaluation: true`\n\n**Request Body:**\n- `appId` (string, required): Application identifier for multi-app support\n- `userId` (string, required): User identifier\n- `latitude` (number, required): Latitude (-90 to 90)\n- `longitude` (number, required): Longitude (-180 to 180)\n- `accuracy` (number, required): Position accuracy in meters (minimum 0)\n- `timestamp` (number, required): Unix timestamp in milliseconds\n- `speed` (number|null, optional): Speed in m/s\n- `heading` (number|null, optional): Heading in degrees (0-360)\n\n**Response (200):**\n```json\n{\n  \"success\": true,\n  \"events\": [\n    {\n      \"type\": \"enter\",\n      \"geofence\": {\n        \"id\": \"uuid\",\n        \"name\": \"Store Location\",\n        \"latitude\": 37.7749,\n        \"longitude\": -122.4194,\n        \"radius\": 100\n      }\n    }\n  ]\n}\n```\n\n**Note:** Events are dispatched to configured adapters on the server:\n- LoggerAdapter: Always enabled, logs to database\n- WebhookAdapter: If `GEOFENCE_WEBHOOK_URL` configured\n- CDPAdapter: If `CDP_API_KEY` and `CDP_PASS_KEY` configured\n\n**Errors:**\n- 400: Invalid input\n- 500: Server error"
+          },
+          "response": []
+        }
+      ],
+      "description": "Server-side geofence evaluation endpoint. Used when SDK has `enableServerEvaluation: true`."
+    },
+    {
+      "name": "Event Logging",
+      "item": [
+        {
+          "name": "Get Events (All)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events?limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "50",
+                  "description": "Maximum number of events to return (default: 50)"
+                }
+              ]
+            },
+            "description": "Get recent geofence events from the database. Events are logged by the LoggerAdapter during server-side evaluation.\n\n**Authentication:** None required (public endpoint for demo purposes)\n\n**Query Parameters (all optional):**\n- `userId` (string): Filter by user ID\n- `eventType` (string): Filter by event type ('enter' or 'exit')\n- `limit` (number): Maximum events to return (default: 50)\n\n**Response (200):**\n```json\n{\n  \"success\": true,\n  \"count\": 10,\n  \"events\": [\n    {\n      \"id\": \"uuid\",\n      \"userId\": \"user-123\",\n      \"eventType\": \"enter\",\n      \"geofence\": {\n        \"id\": \"uuid\",\n        \"name\": \"Store Location\",\n        \"latitude\": 37.7749,\n        \"longitude\": -122.4194,\n        \"radius\": 100\n      },\n      \"position\": {\n        \"latitude\": 37.7749,\n        \"longitude\": -122.4194,\n        \"accuracy\": 10,\n        \"speed\": null,\n        \"heading\": null\n      },\n      \"timestamp\": \"2025-01-01T00:00:00.000Z\",\n      \"createdAt\": \"2025-01-01T00:00:00.000Z\"\n    }\n  ]\n}\n```\n\n**Errors:**\n- 500: Server error"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Events (By User)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events?userId=user-123&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "user-123",
+                  "description": "Filter by user ID"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Maximum number of events to return"
+                }
+              ]
+            },
+            "description": "Get geofence events filtered by user ID."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Events (By Type)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events?eventType=enter&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"],
+              "query": [
+                {
+                  "key": "eventType",
+                  "value": "enter",
+                  "description": "Filter by event type (enter or exit)"
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Maximum number of events to return"
+                }
+              ]
+            },
+            "description": "Get geofence events filtered by event type (enter or exit)."
+          },
+          "response": []
+        }
+      ],
+      "description": "View geofence events logged by the LoggerAdapter during server-side evaluation."
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "your-api-key-here",
+      "type": "string"
+    },
+    {
+      "key": "geofenceId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
