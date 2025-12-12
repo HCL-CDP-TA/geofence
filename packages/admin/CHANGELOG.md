@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.1.0...admin-v2.1.1) (2025-12-12)
+
+
+### Bug Fixes
+
+* **admin:** docker deployment configuration ([184121e](https://github.com/HCL-CDP-TA/geofence/commit/184121ece8a5161620125d42d12985678bed7305))
+
 ## [2.1.0](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.0.0...admin-v2.1.0) (2025-12-12)
 
 
