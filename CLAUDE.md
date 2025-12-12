@@ -104,7 +104,7 @@ The server-side evaluation mode uses a **pluggable adapter pattern** to route ge
 
 NextAuth v5 configuration in [packages/admin/src/lib/auth.ts](packages/admin/src/lib/auth.ts):
 
-- Credentials provider validates email/password using Zod schemas from [packages/admin/src/lib/validations.ts](packages/admin/src/lib/validations.ts)
+- Credentials provider validates username/password using Zod schemas from [packages/admin/src/lib/validations.ts](packages/admin/src/lib/validations.ts)
 - Passwords are hashed with bcrypt before storage
 - JWT tokens include user ID in the session
 - Login page at `/login`

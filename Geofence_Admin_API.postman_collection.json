@@ -21,14 +21,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\",\n  \"name\": \"John Doe\"\n}"
+              "raw": "{\n  \"username\": \"johndoe\",\n  \"password\": \"password123\",\n  \"name\": \"John Doe\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/register",
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "register"]
             },
-            "description": "Register a new user account. Passwords are hashed with bcrypt before storage.\n\n**Request Body:**\n- `email` (string, required): Valid email address\n- `password` (string, required): Minimum 6 characters\n- `name` (string, optional): User's display name\n\n**Response (201):**\n```json\n{\n  \"user\": {\n    \"id\": \"uuid\",\n    \"email\": \"user@example.com\",\n    \"name\": \"John Doe\",\n    \"createdAt\": \"2025-01-01T00:00:00.000Z\"\n  },\n  \"message\": \"User created successfully\"\n}\n```\n\n**Errors:**\n- 400: Invalid input\n- 409: Email already exists\n- 500: Server error"
+            "description": "Register a new user account. Passwords are hashed with bcrypt before storage.\n\n**Request Body:**\n- `username` (string, required): Minimum 3 characters\n- `password` (string, required): Minimum 6 characters\n- `name` (string, optional): User's display name\n\n**Response (201):**\n```json\n{\n  \"user\": {\n    \"id\": \"uuid\",\n    \"username\": \"johndoe\",\n    \"name\": \"John Doe\",\n    \"createdAt\": \"2025-01-01T00:00:00.000Z\"\n  },\n  \"message\": \"User created successfully\"\n}\n```\n\n**Errors:**\n- 400: Invalid input\n- 409: Username already exists\n- 500: Server error"
           },
           "response": []
         },
@@ -44,14 +44,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"password123\"\n}"
+              "raw": "{\n  \"username\": \"johndoe\",\n  \"password\": \"password123\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/callback/credentials",
               "host": ["{{baseUrl}}"],
               "path": ["api", "auth", "callback", "credentials"]
             },
-            "description": "Login via NextAuth credentials provider. This sets a session cookie for authenticated requests.\n\n**Note:** For API-only usage, use API Key authentication instead (set Authorization header).\n\n**Request Body:**\n- `email` (string, required): User's email\n- `password` (string, required): User's password"
+            "description": "Login via NextAuth credentials provider. This sets a session cookie for authenticated requests.\n\n**Note:** For API-only usage, use API Key authentication instead (set Authorization header).\n\n**Request Body:**\n- `username` (string, required): User's username\n- `password` (string, required): User's password"
           },
           "response": []
         }
@@ -77,7 +77,7 @@
               "host": ["{{baseUrl}}"],
               "path": ["api", "users"]
             },
-            "description": "Get all registered users. Password hashes are excluded from the response for security.\n\n**Authentication:** Required (API key or session)\n\n**Response (200):**\n```json\n{\n  \"users\": [\n    {\n      \"id\": \"uuid\",\n      \"email\": \"user@example.com\",\n      \"name\": \"John Doe\",\n      \"createdAt\": \"2025-01-01T00:00:00.000Z\",\n      \"updatedAt\": \"2025-01-01T00:00:00.000Z\"\n    }\n  ]\n}\n```\n\n**Note:** Password field is intentionally excluded from the response.\n\n**Errors:**\n- 401: Unauthorized\n- 500: Server error"
+            "description": "Get all registered users. Password hashes are excluded from the response for security.\n\n**Authentication:** Required (API key or session)\n\n**Response (200):**\n```json\n{\n  \"users\": [\n    {\n      \"id\": \"uuid\",\n      \"username\": \"johndoe\",\n      \"name\": \"John Doe\",\n      \"createdAt\": \"2025-01-01T00:00:00.000Z\",\n      \"updatedAt\": \"2025-01-01T00:00:00.000Z\"\n    }\n  ]\n}\n```\n\n**Note:** Password field is intentionally excluded from the response.\n\n**Errors:**\n- 401: Unauthorized\n- 500: Server error"
           },
           "response": []
         }
