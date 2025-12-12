@@ -6,26 +6,27 @@ import { compare } from "bcrypt"
 import { prisma } from "./prisma"
 import { loginSchema } from "./validations"
 
+const useSecureCookies = process.env.NEXTAUTH_URL?.startsWith("https://")
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true, // Trust proxy headers
-  useSecureCookies: process.env.NODE_ENV === "production",
   cookies: {
     sessionToken: {
-      name: `${process.env.NODE_ENV === "production" ? "__Secure-" : ""}next-auth.session-token`,
+      name: `${useSecureCookies ? "__Secure-" : ""}next-auth.session-token`,
       options: {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: useSecureCookies,
       },
     },
     csrfToken: {
-      name: `${process.env.NODE_ENV === "production" ? "__Host-" : ""}next-auth.csrf-token`,
+      name: `${useSecureCookies ? "__Host-" : ""}next-auth.csrf-token`,
       options: {
         httpOnly: true,
         sameSite: "lax",
         path: "/",
-        secure: process.env.NODE_ENV === "production",
+        secure: useSecureCookies,
       },
     },
   },
