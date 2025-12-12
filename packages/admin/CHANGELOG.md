@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.2](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.1.1...admin-v2.1.2) (2025-12-12)
+
+
+### Bug Fixes
+
+* **admin:** add missing migration for appId fields ([5db05a8](https://github.com/HCL-CDP-TA/geofence/commit/5db05a819d0db61b9574e8c86a381274a9c325b0))
+
 ## [2.1.1](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.1.0...admin-v2.1.1) (2025-12-12)
 
 
