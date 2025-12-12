@@ -59,6 +59,32 @@
       "description": "User registration and authentication endpoints. Use API key authentication for programmatic access."
     },
     {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "List All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "description": "API Key authentication"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"]
+            },
+            "description": "Get all registered users. Password hashes are excluded from the response for security.\n\n**Authentication:** Required (API key or session)\n\n**Response (200):**\n```json\n{\n  \"users\": [\n    {\n      \"id\": \"uuid\",\n      \"email\": \"user@example.com\",\n      \"name\": \"John Doe\",\n      \"createdAt\": \"2025-01-01T00:00:00.000Z\",\n      \"updatedAt\": \"2025-01-01T00:00:00.000Z\"\n    }\n  ]\n}\n```\n\n**Note:** Password field is intentionally excluded from the response.\n\n**Errors:**\n- 401: Unauthorized\n- 500: Server error"
+          },
+          "response": []
+        }
+      ],
+      "description": "User management endpoints for viewing registered users."
+    },
+    {
       "name": "Geofences (Authenticated)",
       "item": [
         {
