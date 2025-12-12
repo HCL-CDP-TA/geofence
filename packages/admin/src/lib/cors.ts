@@ -10,6 +10,12 @@ export function addCorsHeaders(response: NextResponse): NextResponse {
   response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
   response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With")
   response.headers.set("Access-Control-Max-Age", "86400") // 24 hours
+  // Prevent caching of error responses
+  if (response.status >= 400) {
+    response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, private")
+    response.headers.set("Pragma", "no-cache")
+    response.headers.set("Expires", "0")
+  }
   return response
 }
 

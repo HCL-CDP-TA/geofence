@@ -11,6 +11,7 @@ export function middleware(request: NextRequest) {
         "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
         "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With",
         "Access-Control-Max-Age": "86400",
+        "Cache-Control": "public, max-age=86400", // Cache preflight for 24h
       },
     })
   }
