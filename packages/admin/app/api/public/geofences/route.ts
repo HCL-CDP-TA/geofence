@@ -3,6 +3,9 @@
 import { prisma } from "@/src/lib/prisma"
 import { corsJsonResponse, handleOptions } from "@/src/lib/cors"
 
+// Force dynamic rendering to ensure CORS headers are applied
+export const dynamic = 'force-dynamic'
+
 // Cache for 5 minutes (300 seconds)
 export const revalidate = 300
 

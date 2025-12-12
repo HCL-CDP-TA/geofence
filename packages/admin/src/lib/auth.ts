@@ -7,6 +7,7 @@ import { prisma } from './prisma';
 import { loginSchema } from './validations';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true, // Trust proxy headers
   providers: [
     Credentials({
       name: 'credentials',
