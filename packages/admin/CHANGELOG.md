@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.2.0...admin-v2.2.1) (2025-12-12)
+
+
+### Bug Fixes
+
+* add api key to deploy ([df3fe9b](https://github.com/HCL-CDP-TA/geofence/commit/df3fe9b6ec59df862899f7dee982b12b517cfe5a))
+
 ## [2.2.0](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.1.3...admin-v2.2.0) (2025-12-12)
 
 
