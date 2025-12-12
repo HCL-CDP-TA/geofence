@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.7](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.2.6...admin-v2.2.7) (2025-12-12)
+
+
+### Bug Fixes
+
+* **admin:** CSRF fix 2 ([3679f3e](https://github.com/HCL-CDP-TA/geofence/commit/3679f3ed4b3a501f423ac1b4152a29758ffa2fb1))
+
 ## [2.2.6](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.2.5...admin-v2.2.6) (2025-12-12)
 
 
