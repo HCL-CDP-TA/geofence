@@ -111,6 +111,12 @@ const monitor = new GeofenceMonitor({
 - Return proper HTTP status codes
 - Use Prisma for all database operations
 
+### Database Schema Changes - CRITICAL
+- **ALWAYS** create a migration when modifying `schema.prisma`
+- Use `npx prisma migrate dev --name descriptive_name` (NOT `prisma generate` alone)
+- Commit BOTH schema.prisma AND the migration files together
+- Never modify schema without creating migration - causes P2022 errors in production
+
 ### Multi-App Considerations
 - Always include `appId` in server-side position reports
 - Use composite keys `(appId, userId)` for user state queries
@@ -137,7 +143,7 @@ npm run dev -w @hcl-cdp-ta/geofence-sdk    # Watch mode
 
 ## Important Notes
 
-- Prisma Client must be regenerated after schema changes
+- **CRITICAL**: Prisma schema changes REQUIRE migrations (`npx prisma migrate dev`) - never just `prisma generate` alone
 - SDK should remain lightweight for browser use
 - All authenticated API routes use NextAuth session validation
 - Geofences cached after initial fetch - use `refreshGeofences()` for updates

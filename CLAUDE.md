@@ -125,6 +125,57 @@ npx prisma generate -w admin         # Generate Prisma Client
 npx prisma studio -w admin           # Open Prisma Studio UI
 ```
 
+## Database Schema Changes - CRITICAL WORKFLOW
+
+**IMPORTANT**: When modifying the Prisma schema, you **MUST** create a migration. The schema and migrations must always stay in sync.
+
+### Correct Workflow for Schema Changes
+
+1. **Edit the schema**: Modify [packages/admin/prisma/schema.prisma](packages/admin/prisma/schema.prisma)
+
+2. **Create migration immediately**:
+   ```bash
+   cd packages/admin
+   npx prisma migrate dev --name descriptive_migration_name
+   ```
+   This generates both the migration SQL file AND updates Prisma Client.
+
+3. **Verify the migration**:
+   - Check `packages/admin/prisma/migrations/[timestamp]_[name]/migration.sql`
+   - Ensure it contains the expected ALTER/CREATE TABLE statements
+   - Test locally that the migration applies cleanly
+
+4. **Commit BOTH files together**:
+   ```bash
+   git add packages/admin/prisma/schema.prisma
+   git add packages/admin/prisma/migrations/[timestamp]_[name]/
+   git commit -m "feat(admin): add [feature] to database schema"
+   ```
+
+### Common Mistakes to Avoid
+
+❌ **NEVER** modify `schema.prisma` without creating a migration  
+❌ **NEVER** manually edit the Prisma Client types and forget the migration  
+❌ **NEVER** run `prisma generate` alone - use `prisma migrate dev` instead  
+❌ **NEVER** commit schema changes without the corresponding migration
+
+### Why This Matters
+
+- **Development**: Prisma Client is generated from schema (has new fields)
+- **Production**: Database uses migrations (missing columns if migration doesn't exist)
+- **Result**: Runtime error `P2022: The column does not exist in the current database`
+
+### Deployment Behavior
+
+The Docker entrypoint automatically runs `prisma migrate deploy` on startup, which:
+- Checks for pending migrations
+- Applies them in order
+- Detects migration drift and resets schema if needed
+
+This only works if migrations exist for all schema changes!
+
+```
+
 ### SDK (packages/sdk)
 ```bash
 npm run build -w @hcl-cdp-ta/geofence-sdk  # Build SDK (outputs to dist/)
@@ -544,7 +595,7 @@ git push origin main
 
 - The admin app uses Next.js 16 App Router - all pages are in `packages/admin/app/`
 - Server-side code can import from `@/lib/auth` and `@/lib/prisma`
-- Prisma Client must be regenerated after schema changes: `npx prisma generate -w admin`
+- **CRITICAL**: When changing Prisma schema, ALWAYS create a migration using `npx prisma migrate dev` (see Database Schema Changes section above)
 - The SDK has no dependencies (except dev dependencies) - keep it lightweight for browser use
 - All authenticated API routes should use `auth()` from [packages/admin/src/lib/auth.ts](packages/admin/src/lib/auth.ts) to verify session
 - **Scalability**: Current implementation fetches ALL geofences at startup - suitable for <100 geofences. See [SCALABILITY.md](SCALABILITY.md) for scaling strategies
