@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.2.5](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.2.4...admin-v2.2.5) (2025-12-12)
+
+
+### Bug Fixes
+
+* **admin:** CORS 5 ([e52d7e1](https://github.com/HCL-CDP-TA/geofence/commit/e52d7e1572f0775b2fe284d242d18615d1ff5b0b))
+* changed email to username ([b0d4ebd](https://github.com/HCL-CDP-TA/geofence/commit/b0d4ebd742256759db74e8e1d977e8c149a49857))
+
 ## [2.2.4](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.2.3...admin-v2.2.4) (2025-12-12)
 
 
