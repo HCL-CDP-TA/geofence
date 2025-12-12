@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.3](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.2.2...admin-v2.2.3) (2025-12-12)
+
+
+### Bug Fixes
+
+* CORS fix 2 ([cf05f08](https://github.com/HCL-CDP-TA/geofence/commit/cf05f08cd373de4ea9fa75137508fb32d81e79fb))
+
 ## [2.2.2](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.2.1...admin-v2.2.2) (2025-12-12)
 
 
