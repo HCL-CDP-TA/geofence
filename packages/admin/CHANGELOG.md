@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.0.0](https://github.com/HCL-CDP-TA/geofence/compare/admin-v1.1.0...admin-v2.0.0) (2025-12-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* add appId partitioning
+
+### Features
+
+* add appId partitioning ([8cf6aea](https://github.com/HCL-CDP-TA/geofence/commit/8cf6aeab51e496b3c8cf74faeb6b80c26084c277))
+
+
+### Maintenance
+
+* **main:** release admin 1.1.0 ([137c3f2](https://github.com/HCL-CDP-TA/geofence/commit/137c3f2b4040425676297d9ab854280a5ac9fd66))
+* **main:** release admin 1.1.0 ([5cbed38](https://github.com/HCL-CDP-TA/geofence/commit/5cbed380bdc03046a3ae67a419ab746dec78ae2c))
+* **main:** release admin 1.1.1 ([16fd887](https://github.com/HCL-CDP-TA/geofence/commit/16fd887337b40d7d87354bb0b7b3ddb56f8bbe2b))
+* **main:** release admin 1.1.1 ([e03b281](https://github.com/HCL-CDP-TA/geofence/commit/e03b281fdd8ee32c4c215948a986c10913174aef))
+
 ## [1.1.1](https://github.com/HCL-CDP-TA/geofence/compare/admin-v1.1.0...admin-v1.1.1) (2025-12-10)
 
 
