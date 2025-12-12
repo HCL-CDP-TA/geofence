@@ -219,9 +219,13 @@ The admin app requires a `.env` file at [packages/admin/.env](packages/admin/.en
 # Database
 DATABASE_URL="postgresql://user:password@localhost:5432/geofence"
 
-# NextAuth
-NEXTAUTH_SECRET="your-secret-key"
-NEXTAUTH_URL="http://localhost:3000"
+# NextAuth - IMPORTANT: These are required for authentication to work
+NEXTAUTH_SECRET="your-secret-key"        # Generate with: openssl rand -base64 32
+NEXTAUTH_URL="http://localhost:3000"     # Must match your actual URL in production
+AUTH_TRUST_HOST=true                     # Required for Docker/proxy/load balancer environments
+
+# Geofence API Key for external applications
+GEOFENCE_API_KEY="your-api-key"          # Generate with: openssl rand -hex 32
 
 # Event Adapters (optional - only needed for server-side evaluation mode)
 
@@ -233,6 +237,69 @@ CDP_API_KEY="your-cdp-api-key"
 CDP_PASS_KEY="your-cdp-pass-key"
 CDP_ENDPOINT="https://pl.dev.hxcd.now.hclsoftware.cloud"
 ```
+
+## Production Deployment
+
+### Critical Environment Variables
+
+When deploying to production, ensure these environment variables are set correctly:
+
+**Required:**
+- `DATABASE_URL`: Production PostgreSQL connection string
+- `NEXTAUTH_SECRET`: Strong random secret (generate with `openssl rand -base64 32`)
+- `NEXTAUTH_URL`: **MUST** match your production URL exactly (e.g., `https://yourdomain.com`)
+- `AUTH_TRUST_HOST=true`: Required when behind a proxy, load balancer, or in Docker
+
+**Optional:**
+- `GEOFENCE_API_KEY`: For API-based authentication
+- `GEOFENCE_WEBHOOK_URL`: For webhook event notifications
+- `CDP_API_KEY`, `CDP_PASS_KEY`, `CDP_ENDPOINT`: For HCL CDP integration
+
+### Common Production Issues
+
+#### CSRF Token Error (`MissingCSRF`)
+
+If you see this error in production:
+```
+[auth][error] MissingCSRF: CSRF token was missing during an action callback
+```
+
+**Cause:** NextAuth.js cannot validate CSRF tokens due to misconfigured environment or cookies.
+
+**Solutions:**
+
+1. **Set `NEXTAUTH_URL` correctly:**
+   ```bash
+   # Must match your production domain exactly
+   NEXTAUTH_URL="https://yourdomain.com"
+   ```
+
+2. **Enable `AUTH_TRUST_HOST`:**
+   ```bash
+   # Required for Docker/proxy environments
+   AUTH_TRUST_HOST=true
+   ```
+
+3. **Verify `NEXTAUTH_SECRET` is set:**
+   ```bash
+   # Generate a strong secret
+   NEXTAUTH_SECRET=$(openssl rand -base64 32)
+   ```
+
+4. **Check proxy/load balancer headers:**
+   - Ensure `X-Forwarded-Host` header is passed through
+   - Ensure `X-Forwarded-Proto` is set to `https` in production
+
+5. **Restart the application** after changing environment variables
+
+#### Database Migration Issues
+
+The Docker entrypoint automatically runs `prisma migrate deploy` on startup. If migrations fail:
+
+1. Check database connectivity
+2. Verify `DATABASE_URL` is correct
+3. Check migration files exist in `packages/admin/prisma/migrations`
+4. Manually apply migrations: `npx prisma migrate deploy -w admin`
 
 ## Key Implementation Details
 

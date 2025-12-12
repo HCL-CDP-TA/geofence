@@ -19,6 +19,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         secure: process.env.NODE_ENV === "production",
       },
     },
+    csrfToken: {
+      name: `${process.env.NODE_ENV === "production" ? "__Host-" : ""}next-auth.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
   },
   providers: [
     Credentials({
