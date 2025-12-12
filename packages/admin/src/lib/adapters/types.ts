@@ -1,6 +1,7 @@
 // Event adapter interfaces for pluggable geofence event routing
 
 export interface GeofenceEventData {
+  appId: string;
   userId: string;
   eventType: 'enter' | 'exit';
   geofence: {

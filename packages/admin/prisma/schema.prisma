@@ -34,7 +34,8 @@ model Geofence {
 // Track user geofence state for server-side evaluation
 model UserGeofenceState {
   id                String   @id @default(cuid())
-  userId            String   @unique
+  appId             String   @default("default-app")
+  userId            String
   activeGeofenceIds String[] // Array of currently active geofence IDs
   lastLatitude      Float
   lastLongitude     Float
@@ -42,12 +43,15 @@ model UserGeofenceState {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
+  @@unique([appId, userId])
+  @@index([appId])
   @@index([userId])
 }
 
 // Log all geofence enter/exit events
 model GeofenceEvent {
   id         String   @id @default(cuid())
+  appId      String   @default("default-app")
   userId     String
   eventType  String   // 'enter' or 'exit'
   geofenceId String
@@ -60,6 +64,7 @@ model GeofenceEvent {
   timestamp  DateTime
   createdAt  DateTime @default(now())
 
+  @@index([appId])
   @@index([userId])
   @@index([geofenceId])
   @@index([eventType])

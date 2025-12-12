@@ -35,6 +35,7 @@ export class WebhookAdapter implements EventAdapter {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          app_id: event.appId,
           event_type: event.eventType,
           user_id: event.userId,
           geofence: event.geofence,

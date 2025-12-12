@@ -4,6 +4,7 @@ import { isPointInGeofence } from '@/src/lib/utils/distance';
 import { GeofenceEventData, createAdapterConfig, dispatchEvent } from '@/src/lib/adapters';
 
 export interface PositionInput {
+  appId: string;
   userId: string;
   latitude: number;
   longitude: number;
@@ -43,32 +44,33 @@ export class GeofenceEvaluator {
   private adapterConfig = getAdapterConfig();
 
   async evaluatePosition(input: PositionInput): Promise<EvaluationResult> {
-    const { userId, latitude, longitude, accuracy, timestamp, speed, heading } = input;
+    const { appId, userId } = input;
+    const lockKey = `${appId}:${userId}`;
 
-    // Check if there's already an evaluation in progress for this user
-    const existingLock = userLocks.get(userId);
+    // Check if there's already an evaluation in progress for this user+app
+    const existingLock = userLocks.get(lockKey);
     if (existingLock) {
-      console.log(`[GeofenceEvaluator] Evaluation already in progress for user ${userId}, waiting...`);
+      console.log(`[GeofenceEvaluator] Evaluation already in progress for user ${userId} in app ${appId}, waiting...`);
       // Wait for the existing evaluation to complete and return empty result
       await existingLock;
       return { events: [] };
     }
 
-    // Create a new lock for this user
+    // Create a new lock for this user+app
     const evaluationPromise = this.performEvaluation(input);
-    userLocks.set(userId, evaluationPromise);
+    userLocks.set(lockKey, evaluationPromise);
 
     try {
       const result = await evaluationPromise;
       return result;
     } finally {
       // Release the lock
-      userLocks.delete(userId);
+      userLocks.delete(lockKey);
     }
   }
 
   private async performEvaluation(input: PositionInput): Promise<EvaluationResult> {
-    const { userId, latitude, longitude, accuracy, timestamp, speed, heading } = input;
+    const { appId, userId, latitude, longitude, accuracy, timestamp, speed, heading } = input;
 
     // 1. Fetch all enabled geofences
     const geofences = await prisma.geofence.findMany({
@@ -84,13 +86,14 @@ export class GeofenceEvaluator {
 
     // 2. Get user's current state (or create if first time)
     let userState = await prisma.userGeofenceState.findUnique({
-      where: { userId },
+      where: { appId_userId: { appId, userId } },
     });
 
     if (!userState) {
-      // First time seeing this user, create state
+      // First time seeing this user in this app, create state
       userState = await prisma.userGeofenceState.create({
         data: {
+          appId,
           userId,
           activeGeofenceIds: [],
           lastLatitude: latitude,
@@ -98,7 +101,7 @@ export class GeofenceEvaluator {
           lastReportedAt: new Date(timestamp),
         },
       });
-      console.log(`[GeofenceEvaluator] Created new state for user ${userId}`);
+      console.log(`[GeofenceEvaluator] Created new state for user ${userId} in app ${appId}`);
     }
 
     // 3. Evaluate which geofences user is currently in
@@ -126,6 +129,7 @@ export class GeofenceEvaluator {
       if (!previousGeofenceIds.has(geofenceId)) {
         const geofence = geofences.find((g) => g.id === geofenceId)!;
         const eventData: GeofenceEventData = {
+          appId,
           userId,
           eventType: 'enter',
           geofence,
@@ -152,6 +156,7 @@ export class GeofenceEvaluator {
       if (!currentGeofenceIds.has(geofenceId)) {
         const geofence = geofences.find((g) => g.id === geofenceId)!;
         const eventData: GeofenceEventData = {
+          appId,
           userId,
           eventType: 'exit',
           geofence,
@@ -175,7 +180,7 @@ export class GeofenceEvaluator {
 
     // 5. Update user state
     await prisma.userGeofenceState.update({
-      where: { userId },
+      where: { appId_userId: { appId, userId } },
       data: {
         activeGeofenceIds: Array.from(currentGeofenceIds),
         lastLatitude: latitude,
@@ -185,7 +190,7 @@ export class GeofenceEvaluator {
     });
 
     console.log(
-      `[GeofenceEvaluator] Evaluated position for user ${userId}: ${events.length} events`
+      `[GeofenceEvaluator] Evaluated position for user ${userId} in app ${appId}: ${events.length} events`
     );
 
     return { events };
