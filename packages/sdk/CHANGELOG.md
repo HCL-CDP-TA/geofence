@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/HCL-CDP-TA/geofence/compare/geofence-sdk-v1.1.2...geofence-sdk-v2.0.0) (2025-12-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* add appId partitioning
+
+### Features
+
+* add appId partitioning ([8cf6aea](https://github.com/HCL-CDP-TA/geofence/commit/8cf6aeab51e496b3c8cf74faeb6b80c26084c277))
+
 ## [1.1.2](https://github.com/HCL-CDP-TA/geofence/compare/geofence-sdk-v1.1.1...geofence-sdk-v1.1.2) (2025-12-10)
 
 
