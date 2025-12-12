@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/HCL-CDP-TA/geofence/compare/geofence-sdk-v2.0.0...geofence-sdk-v2.0.1) (2025-12-12)
+
+
+### Bug Fixes
+
+* CORS fix 2 ([cf05f08](https://github.com/HCL-CDP-TA/geofence/commit/cf05f08cd373de4ea9fa75137508fb32d81e79fb))
+
 ## [2.0.0](https://github.com/HCL-CDP-TA/geofence/compare/geofence-sdk-v1.1.2...geofence-sdk-v2.0.0) (2025-12-12)
 
 
