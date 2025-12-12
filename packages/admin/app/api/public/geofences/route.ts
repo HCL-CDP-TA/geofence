@@ -4,7 +4,7 @@ import { prisma } from "@/src/lib/prisma"
 import { corsJsonResponse, handleOptions } from "@/src/lib/cors"
 
 // Force dynamic rendering to ensure CORS headers are applied
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic"
 
 // Cache for 5 minutes (300 seconds)
 export const revalidate = 300
@@ -30,12 +30,15 @@ export async function GET() {
       orderBy: { createdAt: "desc" },
     })
 
-    return corsJsonResponse({ geofences }, {
-      headers: {
-        // Cache on client for 5 minutes, CDN can serve stale for up to 10 minutes while revalidating
-        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600'
-      }
-    })
+    return corsJsonResponse(
+      { geofences },
+      {
+        headers: {
+          // Cache on client for 5 minutes, CDN can serve stale for up to 10 minutes while revalidating
+          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
+        },
+      },
+    )
   } catch (error) {
     console.error("Error fetching public geofences:", error)
     return corsJsonResponse({ error: "Internal server error" }, { status: 500 })

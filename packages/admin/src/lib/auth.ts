@@ -1,42 +1,42 @@
 // NextAuth.js v5 configuration
 
-import NextAuth, { User } from 'next-auth';
-import Credentials from 'next-auth/providers/credentials';
-import { compare } from 'bcrypt';
-import { prisma } from './prisma';
-import { loginSchema } from './validations';
+import NextAuth, { User } from "next-auth"
+import Credentials from "next-auth/providers/credentials"
+import { compare } from "bcrypt"
+import { prisma } from "./prisma"
+import { loginSchema } from "./validations"
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true, // Trust proxy headers
   providers: [
     Credentials({
-      name: 'credentials',
+      name: "credentials",
       credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
       },
       async authorize(credentials): Promise<User | null> {
         // Validate input
-        const result = loginSchema.safeParse(credentials);
+        const result = loginSchema.safeParse(credentials)
         if (!result.success) {
-          return null;
+          return null
         }
 
-        const { email, password } = result.data;
+        const { email, password } = result.data
 
         // Find user
         const user = await prisma.user.findUnique({
           where: { email },
-        });
+        })
 
         if (!user) {
-          return null;
+          return null
         }
 
         // Verify password
-        const isValid = await compare(password, user.password);
+        const isValid = await compare(password, user.password)
         if (!isValid) {
-          return null;
+          return null
         }
 
         // Return user object
@@ -44,28 +44,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           id: user.id,
           email: user.email,
           name: user.name,
-        };
+        }
       },
     }),
   ],
   pages: {
-    signIn: '/login',
+    signIn: "/login",
   },
   session: {
-    strategy: 'jwt',
+    strategy: "jwt",
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.id = user.id;
+        token.id = user.id
       }
-      return token;
+      return token
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = token.id as string;
+        session.user.id = token.id as string
       }
-      return session;
+      return session
     },
   },
-});
+})
