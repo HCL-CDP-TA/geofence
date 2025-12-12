@@ -49,8 +49,12 @@ This is a geofencing monorepo that consists of:
 Located in [packages/admin/prisma/schema.prisma](packages/admin/prisma/schema.prisma):
 - **User**: Authentication users with bcrypt-hashed passwords
 - **Geofence**: Geographic zones with latitude, longitude, radius, and enabled status
-- **UserGeofenceState**: Tracks active geofences per user for server-side evaluation
-- **GeofenceEvent**: Logs all enter/exit events (used by LoggerAdapter)
+- **UserGeofenceState**: Tracks active geofences per (appId, userId) for server-side evaluation
+  - Uses composite unique constraint `@@unique([appId, userId])` to support multiple apps
+  - Default `appId: "default-app"` for backward compatibility
+- **GeofenceEvent**: Logs all enter/exit events with appId tracking (used by LoggerAdapter)
+  - Includes `appId` field with default `"default-app"`
+  - Indexed on `appId` for efficient querying per application
 
 ### API Routes
 All routes in [packages/admin/app/api](packages/admin/app/api):
@@ -61,16 +65,16 @@ All routes in [packages/admin/app/api](packages/admin/app/api):
 - `PUT /api/geofences/[id]` - Update geofence (authenticated)
 - `DELETE /api/geofences/[id]` - Delete geofence (authenticated)
 - `GET /api/public/geofences` - Public endpoint for SDK to fetch enabled geofences (client-side mode)
-- `POST /api/events/position` - Position reporting for server-side geofence evaluation (server-side mode)
-- `GET /api/events` - View logged geofence events with filtering (authenticated)
+- `POST /api/events/position` - Position reporting for server-side geofence evaluation (requires `appId` and `userId`)
+- `GET /api/events` - View logged geofence events with filtering by appId, userId, geofence (authenticated)
 
 ### Event Adapter System (Server-Side Mode)
 
 The server-side evaluation mode uses a **pluggable adapter pattern** to route geofence events to external systems:
 
 **Core Components**:
-- `GeofenceEvaluator` ([packages/admin/src/lib/services/geofence-evaluator.ts](packages/admin/src/lib/services/geofence-evaluator.ts)) - Evaluates position against geofences, maintains user state, dispatches events to adapters
-- Adapter types ([packages/admin/src/lib/adapters/types.ts](packages/admin/src/lib/adapters/types.ts)) - `EventAdapter` interface for pluggable integrations
+- `GeofenceEvaluator` ([packages/admin/src/lib/services/geofence-evaluator.ts](packages/admin/src/lib/services/geofence-evaluator.ts)) - Evaluates position against geofences, maintains user state using composite keys `(appId, userId)`, dispatches events to adapters
+- Adapter types ([packages/admin/src/lib/adapters/types.ts](packages/admin/src/lib/adapters/types.ts)) - `EventAdapter` interface for pluggable integrations, includes `appId` in event data
 - Adapter registry ([packages/admin/src/lib/adapters/index.ts](packages/admin/src/lib/adapters/index.ts)) - `createAdapterConfig()` initializes all adapters, `dispatchEvent()` calls adapters in parallel
 
 **Built-in Adapters**:
@@ -167,6 +171,7 @@ import { GeofenceMonitor } from '@geofence/sdk';
 
 const monitor = new GeofenceMonitor({
   apiUrl: 'http://localhost:3000',
+  appId: 'my-app-id',      // Optional, defaults to 'default-app'
   pollingInterval: 10000,  // Check position every 10s
   enableHighAccuracy: true,
   debug: false,
@@ -188,6 +193,7 @@ import { GeofenceMonitor } from '@geofence/sdk';
 
 const monitor = new GeofenceMonitor({
   apiUrl: 'http://localhost:3000',
+  appId: 'my-app-id',                    // Optional, defaults to 'default-app'
   userId: 'user-123',                    // Required for server mode
   enableServerEvaluation: true,          // Enable server-authoritative mode
   significantMovementThreshold: 50,      // Only report when moved >50m (default: 50)
@@ -201,6 +207,7 @@ monitor.on('enter', (geofence) => {
   console.log('Entered:', geofence.name);
   // Event came from server evaluation
   // Server has already fired adapters (CDP, webhooks, etc.)
+  // Event includes appId for tracking which application triggered it
 });
 
 monitor.on('exit', (geofence) => console.log('Exited:', geofence.name));
@@ -211,9 +218,16 @@ await monitor.start();
 **Server-Side Mode Behavior**:
 - Client polls GPS every `pollingInterval` ms
 - Position sent to server only when moved > `significantMovementThreshold` meters
-- Server evaluates geofences and returns enter/exit events
-- Server dispatches events to configured adapters (CDP, webhooks, database logger)
+- Position report includes `appId` and `userId` for namespace isolation
+- Server evaluates geofences using composite key `(appId, userId)` to track state per application
+- Server dispatches events to configured adapters (CDP, webhooks, database logger) with `appId` included
 - Client receives events from server response and emits locally
+
+**Multi-App Support**:
+- Multiple applications can share the same geofencing backend without user ID collisions
+- Each app uses unique `appId` to maintain separate user state tracking
+- Events logged with `appId` for per-application analytics and debugging
+- Default `appId: "default-app"` ensures backward compatibility
 
 **Note**: For scalability considerations and best practices, see [SCALABILITY.md](SCALABILITY.md).
 
@@ -318,6 +332,10 @@ Your backend must provide a public endpoint that returns enabled geofences:
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `apiUrl` | string | **required** | Base URL of your geofence API server |
+| `appId` | string | "default-app" | Application identifier for multi-app support |
+| `userId` | string | undefined | User identifier (required for server-side evaluation) |
+| `enableServerEvaluation` | boolean | false | Enable server-side geofence evaluation |
+| `significantMovementThreshold` | number | 50 | Meters moved before reporting position (server mode only) |
 | `pollingInterval` | number | 10000 | How often to check position (milliseconds) |
 | `enableHighAccuracy` | boolean | true | Request high-accuracy GPS from browser |
 | `debug` | boolean | false | Enable console debug logging |

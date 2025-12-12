@@ -18,6 +18,7 @@ export class LoggerAdapter implements EventAdapter {
     try {
       await prisma.geofenceEvent.create({
         data: {
+          appId: event.appId,
           userId: event.userId,
           eventType: event.eventType,
           geofenceId: event.geofence.id,
@@ -31,7 +32,7 @@ export class LoggerAdapter implements EventAdapter {
       });
 
       console.log(
-        `[LoggerAdapter] Logged ${event.eventType} event for user ${event.userId} at geofence ${event.geofence.name}`
+        `[LoggerAdapter] Logged ${event.eventType} event for user ${event.userId} in app ${event.appId} at geofence ${event.geofence.name}`
       );
     } catch (error) {
       console.error('[LoggerAdapter] Failed to log event:', error);

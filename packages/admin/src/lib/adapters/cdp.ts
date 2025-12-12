@@ -63,6 +63,7 @@ export class CDPAdapter implements EventAdapter {
         eventname: eventName,
         userid: event.userId,
         properties: {
+          app_id: event.appId,
           geofence_id: event.geofence.id,
           geofence_name: event.geofence.name,
           geofence_latitude: event.geofence.latitude,

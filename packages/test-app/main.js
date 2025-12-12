@@ -17,6 +17,7 @@ let geofenceCircles = []
 let currentGeofences = new Set()
 let currentMode = "manual" // 'manual' or 'gps'
 let evaluationMode = "client" // 'client' or 'server'
+let appId = "test-app-1"
 let userId = "test-user-1"
 
 // DOM Elements
@@ -36,6 +37,7 @@ const manualModeBtn = document.getElementById("manualModeBtn")
 const gpsModeBtn = document.getElementById("gpsModeBtn")
 const modeDescription = document.getElementById("modeDescription")
 const positionControlCard = document.getElementById("positionControlCard")
+const appIdInput = document.getElementById("appIdInput")
 const userIdInput = document.getElementById("userIdInput")
 const clientModeBtn = document.getElementById("clientModeBtn")
 const serverModeBtn = document.getElementById("serverModeBtn")
@@ -62,6 +64,7 @@ function initMap() {
 function initSDK(mode = "manual") {
   const options = {
     apiUrl: "http://localhost:3000",
+    appId: appId,
     pollingInterval: 5000, // 5 seconds - more reasonable for server-side evaluation
     debug: true,
     testMode: mode === "manual",
@@ -442,6 +445,7 @@ function switchEvaluationMode(newMode) {
   if (newMode === evaluationMode) return
 
   evaluationMode = newMode
+  appId = appIdInput.value || "test-app-1"
   userId = userIdInput.value || "test-user-1"
 
   // Update UI
@@ -455,8 +459,8 @@ function switchEvaluationMode(newMode) {
     clientModeBtn.classList.remove("active")
     serverModeBtn.classList.add("active")
     serverModeInfo.style.display = "block"
-    evaluationModeDescription.textContent = `Server-side evaluation (User: ${userId})`
-    addEventLog("position", `Switched to Server-Side Evaluation (User: ${userId})`)
+    evaluationModeDescription.textContent = `Server-side evaluation (App: ${appId}, User: ${userId})`
+    addEventLog("position", `Switched to Server-Side Evaluation (App: ${appId}, User: ${userId})`)
   }
 
   // Reinitialize SDK
@@ -485,6 +489,17 @@ gpsModeBtn.addEventListener("click", () => switchMode("gps"))
 // Evaluation mode toggle listeners
 clientModeBtn.addEventListener("click", () => switchEvaluationMode("client"))
 serverModeBtn.addEventListener("click", () => switchEvaluationMode("server"))
+
+// App ID input change listener
+appIdInput.addEventListener("change", e => {
+  appId = e.target.value || "test-app-1"
+  if (evaluationMode === "server") {
+    // Prompt to restart if running
+    if (monitor && monitor.getStatus().isRunning) {
+      addEventLog("position", "Restart monitor to apply new appId")
+    }
+  }
+})
 
 // User ID input change listener
 userIdInput.addEventListener("change", e => {

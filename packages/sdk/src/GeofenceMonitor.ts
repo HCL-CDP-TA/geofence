@@ -35,6 +35,7 @@ export class GeofenceMonitor {
     }
 
     this.options = {
+      appId: 'default-app',
       pollingInterval: 10000,
       enableHighAccuracy: true,
       debug: false,
@@ -440,6 +441,7 @@ export class GeofenceMonitor {
     this.serverCallInProgress = true;
     try {
       const report: PositionReport = {
+        appId: this.options.appId!,
         userId: this.options.userId!,
         latitude,
         longitude,

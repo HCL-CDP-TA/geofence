@@ -78,16 +78,17 @@ new GeofenceMonitor(options: GeofenceMonitorOptions)
 
 **Options:**
 
-| Option                         | Type      | Default  | Description                                                    |
-| ------------------------------ | --------- | -------- | -------------------------------------------------------------- |
-| `apiUrl`                       | `string`  | Required | Base URL of your geofence API                                  |
-| `pollingInterval`              | `number`  | `10000`  | How often to check location (milliseconds)                     |
-| `enableHighAccuracy`           | `boolean` | `true`   | Use GPS for high accuracy positioning                          |
-| `debug`                        | `boolean` | `false`  | Enable debug logging to console                                |
-| `testMode`                     | `boolean` | `false`  | Enable manual position control for testing                     |
-| `userId`                       | `string`  | -        | User identifier (required for server-side evaluation)          |
-| `enableServerEvaluation`       | `boolean` | `false`  | Enable server-side geofence evaluation                         |
-| `significantMovementThreshold` | `number`  | `50`     | Only report position when moved this many meters (server mode) |
+| Option                         | Type      | Default        | Description                                                    |
+| ------------------------------ | --------- | -------------- | -------------------------------------------------------------- |
+| `apiUrl`                       | `string`  | Required       | Base URL of your geofence API                                  |
+| `appId`                        | `string`  | `"default-app"`| Application identifier for multi-app support                   |
+| `pollingInterval`              | `number`  | `10000`        | How often to check location (milliseconds)                     |
+| `enableHighAccuracy`           | `boolean` | `true`         | Use GPS for high accuracy positioning                          |
+| `debug`                        | `boolean` | `false`        | Enable debug logging to console                                |
+| `testMode`                     | `boolean` | `false`        | Enable manual position control for testing                     |
+| `userId`                       | `string`  | -              | User identifier (required for server-side evaluation)          |
+| `enableServerEvaluation`       | `boolean` | `false`        | Enable server-side geofence evaluation                         |
+| `significantMovementThreshold` | `number`  | `50`           | Only report position when moved this many meters (server mode) |
 
 #### Methods
 
@@ -240,6 +241,7 @@ The SDK sends position updates to the server, which evaluates geofences and retu
 ```typescript
 const monitor = new GeofenceMonitor({
   apiUrl: "https://api.example.com",
+  appId: "my-mobile-app", // Optional: defaults to "default-app"
   userId: "user-123", // Required for server mode
   enableServerEvaluation: true, // Enable server-authoritative mode
   significantMovementThreshold: 50, // Only report when moved >50m (default)
@@ -268,12 +270,13 @@ await monitor.start()
 - Centralized event logging and audit trail
 - Reduced network traffic via movement threshold
 - Server is source of truth for geofence state
+- Multi-app support: Different apps can have same user IDs without conflicts
 
 **Requirements for Server Mode:**
 
 - Backend must implement `POST /api/events/position` endpoint
 - `userId` must be provided in SDK configuration
-- Server must maintain user geofence state in database
+- Server must maintain user geofence state in database using composite key `(appId, userId)`
 
 **API Endpoint Requirements:**
 
@@ -285,6 +288,7 @@ Request body:
 
 ```json
 {
+  "appId": "my-mobile-app",
   "userId": "user-123",
   "latitude": 37.7749,
   "longitude": -122.4194,
@@ -315,6 +319,62 @@ Response:
   ]
 }
 ```
+
+## Multi-App Support
+
+The SDK supports multiple applications using the same geofencing backend without user ID conflicts through the `appId` parameter.
+
+### Why Use App IDs?
+
+If you have multiple applications (e.g., iOS app, Android app, web app) using the same geofencing system, users with the same ID in different apps would conflict. The `appId` parameter creates namespace isolation.
+
+**Example scenario:**
+- iOS app has user "user-123"
+- Android app has user "user-123"
+- Without `appId`: These would be treated as the same user
+- With `appId`: They're tracked separately as ("ios-app", "user-123") and ("android-app", "user-123")
+
+### Usage
+
+Simply provide an `appId` when initializing the SDK:
+
+```typescript
+// iOS app
+const monitor = new GeofenceMonitor({
+  apiUrl: "https://api.example.com",
+  appId: "ios-app", // Identifies this as the iOS app
+  userId: "user-123",
+  enableServerEvaluation: true,
+})
+
+// Android app
+const monitor = new GeofenceMonitor({
+  apiUrl: "https://api.example.com",
+  appId: "android-app", // Identifies this as the Android app
+  userId: "user-123", // Same user ID, different app - no conflict!
+  enableServerEvaluation: true,
+})
+```
+
+### Default Behavior
+
+If you don't specify an `appId`, it defaults to `"default-app"`. This is fine for single-app deployments or backward compatibility.
+
+```typescript
+const monitor = new GeofenceMonitor({
+  apiUrl: "https://api.example.com",
+  // appId defaults to "default-app"
+})
+```
+
+### Server-Side State Management
+
+When using server-side evaluation, the backend maintains user state using a composite key of `(appId, userId)`. This ensures:
+
+- Each app's users are tracked independently
+- Geofence enter/exit events are scoped per app
+- Analytics events include `app_id` for segmentation
+- No user ID collisions across apps
 
 ## Usage Examples
 

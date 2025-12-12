@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 // Validation schema for position reports
 const positionReportSchema = z.object({
+  appId: z.string().min(1, 'appId is required'),
   userId: z.string().min(1, 'userId is required'),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),

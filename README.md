@@ -128,7 +128,8 @@ import { GeofenceMonitor } from '@geofence/sdk';
 
 const monitor = new GeofenceMonitor({
   apiUrl: 'http://localhost:3000',
-  pollingInterval: 10000, // Check every 10 seconds
+  appId: 'my-app-id',      // Optional: defaults to 'default-app'
+  pollingInterval: 10000,  // Check every 10 seconds
 });
 
 monitor.on('enter', (geofence) => {
@@ -147,13 +148,14 @@ See [packages/sdk/README.md](packages/sdk/README.md) for complete SDK documentat
 
 ### 4. Server-Authoritative Mode (Advanced)
 
-The SDK now supports **server-side geofence evaluation** for improved security and integration with marketing platforms.
+The SDK supports **server-side geofence evaluation** for improved security and integration with marketing platforms.
 
 ```typescript
 import { GeofenceMonitor } from '@geofence/sdk';
 
 const monitor = new GeofenceMonitor({
   apiUrl: 'http://localhost:3000',
+  appId: 'my-app-id',                    // Optional: defaults to 'default-app'
   userId: 'user-123',                    // Required for server mode
   enableServerEvaluation: true,          // Enable server-side mode
   significantMovementThreshold: 50,      // Only report when moved >50m
@@ -170,7 +172,8 @@ await monitor.start();
 **Server-Side Benefits:**
 - Server evaluates geofences (source of truth)
 - Position only sent when moved >50m (reduces network traffic)
-- Events routed to pluggable adapters (CDP, webhooks, database)
+- Events routed to pluggable adapters (CDP, webhooks, database) with appId tracking
+- Multi-app support: Different apps with same user IDs don't conflict
 - Suitable for martech integrations and analytics
 
 See [docs/ADAPTERS.md](docs/ADAPTERS.md) for implementing custom event adapters.
@@ -251,7 +254,8 @@ POST   /api/geofences                  # Create geofence (auth required)
 PUT    /api/geofences/[id]             # Update geofence (auth required)
 DELETE /api/geofences/[id]             # Delete geofence (auth required)
 GET    /api/public/geofences           # Public endpoint for SDK (client mode)
-POST   /api/events/position            # Position reporting (server evaluation mode)
+POST   /api/events/position            # Position reporting (requires appId, userId)
+GET    /api/events                     # View logged events (filter by appId, userId, geofence)
 ```
 
 ## Environment Variables

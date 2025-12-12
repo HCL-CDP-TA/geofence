@@ -2,6 +2,7 @@
 
 export interface GeofenceMonitorOptions {
   apiUrl: string;
+  appId?: string; // optional, default: 'default-app'
   pollingInterval?: number; // milliseconds, default: 10000
   enableHighAccuracy?: boolean; // default: true
   debug?: boolean; // default: false
@@ -29,6 +30,7 @@ export interface MonitorStatus {
 
 // Server-side evaluation types
 export interface PositionReport {
+  appId: string;
   userId: string;
   latitude: number;
   longitude: number;

@@ -71,6 +71,7 @@ export class MyAdapter implements EventAdapter {
         },
         body: JSON.stringify({
           type,
+          appId: event.appId,
           userId: event.userId,
           geofence: event.geofence,
           position: event.position,
@@ -140,6 +141,7 @@ Adapters receive `GeofenceEventData` objects:
 
 ```typescript
 interface GeofenceEventData {
+  appId: string;            // Application identifier (default: 'default-app')
   userId: string;           // User identifier
   eventType: 'enter' | 'exit';  // Event type
   geofence: {
@@ -159,6 +161,8 @@ interface GeofenceEventData {
   timestamp: Date;          // Event timestamp
 }
 ```
+
+**Multi-App Support**: The `appId` field enables multiple applications to share the same geofencing backend without user ID namespace collisions. Each application can track its own users independently using the composite key `(appId, userId)`.
 
 ## Built-in Adapters
 
@@ -183,6 +187,7 @@ GEOFENCE_WEBHOOK_URL=https://your-webhook-endpoint.com/events
 ```json
 {
   "event_type": "enter",
+  "app_id": "my-app-id",
   "user_id": "user-123",
   "geofence": {
     "id": "uuid",
@@ -222,6 +227,7 @@ CDP_ENDPOINT=https://your-cdp-instance.com/api
 **Properties**:
 ```javascript
 {
+  app_id: "my-app-id",
   geofence_id: "uuid",
   geofence_name: "Store Location",
   geofence_latitude: 37.7749,
@@ -327,6 +333,7 @@ Send a position report directly to the API:
 curl -X POST http://localhost:3000/api/events/position \
   -H "Content-Type: application/json" \
   -d '{
+    "appId": "test-app",
     "userId": "test-user-1",
     "latitude": 37.7749,
     "longitude": -122.4194,
