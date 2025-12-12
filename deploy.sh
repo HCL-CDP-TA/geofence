@@ -179,6 +179,7 @@ if [ "$USE_DOCKER_NETWORK" = true ]; then
     -e NEXTAUTH_URL="${NEXTAUTH_URL:-http://localhost:$HOST_PORT}" \
     -e AUTH_TRUST_HOST=true \
     -e NODE_ENV="$ENVIRONMENT" \
+    -e GEOFENCE_API_KEY="${GEOFENCE_API_KEY:-}" \
     -e GEOFENCE_WEBHOOK_URL="${GEOFENCE_WEBHOOK_URL:-}" \
     -e CDP_API_KEY="${CDP_API_KEY:-}" \
     -e CDP_PASS_KEY="${CDP_PASS_KEY:-}" \
@@ -196,6 +197,7 @@ else
     -e NEXTAUTH_URL="${NEXTAUTH_URL:-http://localhost:$HOST_PORT}" \
     -e AUTH_TRUST_HOST=true \
     -e NODE_ENV="$ENVIRONMENT" \
+    -e GEOFENCE_API_KEY="${GEOFENCE_API_KEY:-}" \
     -e GEOFENCE_WEBHOOK_URL="${GEOFENCE_WEBHOOK_URL:-}" \
     -e CDP_API_KEY="${CDP_API_KEY:-}" \
     -e CDP_PASS_KEY="${CDP_PASS_KEY:-}" \
