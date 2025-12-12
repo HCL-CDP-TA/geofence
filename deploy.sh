@@ -235,3 +235,4 @@ echo -e "${RED}ERROR: Application failed to start after $MAX_ATTEMPTS attempts${
 echo -e "${YELLOW}Container logs:${NC}"
 docker logs "$CONTAINER_NAME"
 exit 1
+
