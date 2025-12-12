@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.1.0](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.0.0...admin-v2.1.0) (2025-12-12)
+
+
+### Features
+
+* caching on geofences ([6ad9c36](https://github.com/HCL-CDP-TA/geofence/commit/6ad9c3639ac436117e1ff6fa6ab912d2144b3c41))
+* caching on geofences ([b9fd387](https://github.com/HCL-CDP-TA/geofence/commit/b9fd387b79a7b7d5f5dc295a67aeb4932d7aa7e1))
+
+
+### Maintenance
+
+* nextjs security upgrade ([6653c99](https://github.com/HCL-CDP-TA/geofence/commit/6653c996229c39d1137647ecf402764675499c8a))
+
 ## [2.0.0](https://github.com/HCL-CDP-TA/geofence/compare/admin-v1.1.0...admin-v2.0.0) (2025-12-12)
 
 
