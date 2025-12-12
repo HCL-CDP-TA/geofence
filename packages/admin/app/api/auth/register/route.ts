@@ -18,16 +18,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const { email, password, name } = result.data;
+    const { username, password, name } = result.data;
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { username },
     });
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'User with this email already exists' },
+        { error: 'User with this username already exists' },
         { status: 409 }
       );
     }
@@ -38,13 +38,13 @@ export async function POST(request: Request) {
     // Create user
     const user = await prisma.user.create({
       data: {
-        email,
+        username,
         password: hashedPassword,
         name,
       },
       select: {
         id: true,
-        email: true,
+        username: true,
         name: true,
         createdAt: true,
       },

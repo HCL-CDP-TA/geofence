@@ -24,7 +24,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Credentials({
       name: "credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials): Promise<User | null> {
@@ -34,11 +34,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null
         }
 
-        const { email, password } = result.data
+        const { username, password } = result.data
 
         // Find user
         const user = await prisma.user.findUnique({
-          where: { email },
+          where: { username },
         })
 
         if (!user) {
@@ -54,7 +54,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Return user object
         return {
           id: user.id,
-          email: user.email,
+          email: user.username,
           name: user.name,
         }
       },
