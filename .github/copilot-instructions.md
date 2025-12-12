@@ -5,6 +5,7 @@ This file provides guidance to GitHub Copilot when working with code in this rep
 ## Project Overview
 
 This is a geofencing monorepo consisting of:
+
 - **packages/admin**: Next.js 16 admin dashboard for managing geofences
 - **packages/sdk**: Browser-based geofencing SDK for location monitoring
 - **packages/test-app**: Test application for SDK with manual position control
@@ -29,6 +30,7 @@ The system supports multiple applications sharing the same geofencing backend us
 ### Server-Side Evaluation
 
 Two evaluation modes:
+
 1. **Client-Side** (default): SDK fetches geofences, evaluates locally
 2. **Server-Side**: SDK sends position to server, server evaluates and dispatches to adapters
 
@@ -37,6 +39,7 @@ Server-side requires `userId` and `enableServerEvaluation: true` in SDK options.
 ### Event Adapter System
 
 Pluggable adapter pattern for routing geofence events:
+
 - **LoggerAdapter**: Always enabled, logs to database with appId
 - **WebhookAdapter**: POSTs to configured URL with app_id field
 - **CDPAdapter**: Sends to HCL CDP with app_id property
@@ -69,23 +72,25 @@ model GeofenceEvent {
 ## SDK Usage Examples
 
 ### Client-Side Mode
+
 ```typescript
 const monitor = new GeofenceMonitor({
-  apiUrl: 'http://localhost:3000',
-  appId: 'my-app-id',  // Optional, defaults to 'default-app'
+  apiUrl: "http://localhost:3000",
+  appId: "my-app-id", // Optional, defaults to 'default-app'
   pollingInterval: 10000,
-});
+})
 ```
 
 ### Server-Side Mode
+
 ```typescript
 const monitor = new GeofenceMonitor({
-  apiUrl: 'http://localhost:3000',
-  appId: 'my-app-id',
-  userId: 'user-123',  // Required
+  apiUrl: "http://localhost:3000",
+  appId: "my-app-id",
+  userId: "user-123", // Required
   enableServerEvaluation: true,
   significantMovementThreshold: 50,
-});
+})
 ```
 
 ## API Routes
@@ -97,27 +102,32 @@ const monitor = new GeofenceMonitor({
 ## Coding Standards
 
 ### TypeScript
+
 - Use strict mode
 - Properly type all functions and components
 - Export interfaces from SDK types file
 
 ### SDK Development
+
 - Keep zero runtime dependencies
 - Build with tsup for dual ESM/CJS output
 - Include TypeScript declarations
 
 ### API Routes
+
 - Always validate session with `getSession()` or `getSessionOrDemo()`
 - Return proper HTTP status codes
 - Use Prisma for all database operations
 
 ### Database Schema Changes - CRITICAL
+
 - **ALWAYS** create a migration when modifying `schema.prisma`
 - Use `npx prisma migrate dev --name descriptive_name` (NOT `prisma generate` alone)
 - Commit BOTH schema.prisma AND the migration files together
 - Never modify schema without creating migration - causes P2022 errors in production
 
 ### Multi-App Considerations
+
 - Always include `appId` in server-side position reports
 - Use composite keys `(appId, userId)` for user state queries
 - Include `appId` in all event adapter payloads
@@ -152,6 +162,7 @@ npm run dev -w @hcl-cdp-ta/geofence-sdk    # Watch mode
 ## Release Process
 
 Uses release-please for automated versioning:
+
 - SDK changes auto-publish to npm when release PR is merged
 - Use conventional commits: `feat(sdk):`, `fix(admin):`, etc.
 - Packages version independently
