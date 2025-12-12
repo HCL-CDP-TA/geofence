@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.0](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.1.3...admin-v2.2.0) (2025-12-12)
+
+
+### Features
+
+* added user list API (plus deploy fix for api key ([4c27fff](https://github.com/HCL-CDP-TA/geofence/commit/4c27fffb96973b5a7366e0cd73a8092cd78910cf))
+
 ## [2.1.3](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.1.2...admin-v2.1.3) (2025-12-12)
 
 
