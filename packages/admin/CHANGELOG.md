@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.3](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.1.2...admin-v2.1.3) (2025-12-12)
+
+
+### Bug Fixes
+
+* **admin:** version display in admin ([f3983ac](https://github.com/HCL-CDP-TA/geofence/commit/f3983acc4b6719117b643fbb9efbd77014f346a4))
+
 ## [2.1.2](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.1.1...admin-v2.1.2) (2025-12-12)
 
 
