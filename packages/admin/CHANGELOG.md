@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.2.7...admin-v2.3.0) (2025-12-15)
+
+
+### Features
+
+* added user update/delete ([d7b8693](https://github.com/HCL-CDP-TA/geofence/commit/d7b8693346b31a057a759ce0450136dbc92c3ab6))
+
 ## [2.2.7](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.2.6...admin-v2.2.7) (2025-12-12)
 
 
