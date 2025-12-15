@@ -69,6 +69,8 @@ All routes in [packages/admin/app/api](packages/admin/app/api):
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/[...nextauth]` - NextAuth handlers (login/logout)
 - `GET /api/users` - List all users (authenticated, excludes password hashes)
+- `PATCH /api/users/[id]` - Update user including password reset (authenticated via API key or session)
+- `DELETE /api/users/[id]` - Delete user (authenticated via API key or session)
 - `GET /api/geofences` - List geofences (authenticated)
 - `POST /api/geofences` - Create geofence (authenticated)
 - `PUT /api/geofences/[id]` - Update geofence (authenticated)

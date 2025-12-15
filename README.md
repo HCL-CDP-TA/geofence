@@ -249,6 +249,9 @@ The admin app provides these endpoints:
 ```
 POST   /api/auth/register              # Create new user
 POST   /api/auth/[...nextauth]         # Login/logout
+GET    /api/users                      # List all users (auth required)
+PATCH  /api/users/[id]                 # Update user including password reset (auth required)
+DELETE /api/users/[id]                 # Delete user (auth required)
 GET    /api/geofences                  # List geofences (auth required)
 POST   /api/geofences                  # Create geofence (auth required)
 PUT    /api/geofences/[id]             # Update geofence (auth required)

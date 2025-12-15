@@ -31,8 +31,15 @@ export const updateGeofenceSchema = z.object({
   enabled: z.boolean().optional(),
 });
 
+export const updateUserSchema = z.object({
+  username: z.string().min(3, 'Username must be at least 3 characters').optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+  name: z.string().optional(),
+});
+
 // Type exports
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 export type CreateGeofenceInput = z.infer<typeof createGeofenceSchema>;
 export type UpdateGeofenceInput = z.infer<typeof updateGeofenceSchema>;
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;

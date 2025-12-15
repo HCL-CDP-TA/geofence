@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Geofence Admin API",
-    "description": "Complete API collection for the Geofence Admin application. Includes authentication, geofence management, server-side evaluation, and event logging endpoints.\n\n## Authentication\n\nThe API supports two authentication methods:\n\n1. **API Key**: Add `Authorization: Bearer YOUR_API_KEY` header (set `GEOFENCE_API_KEY` in admin .env)\n2. **Session**: Login via `/api/auth/register` and `/api/auth/signin` (handled by NextAuth)\n\n## Environment Variables\n\nSet these variables in Postman:\n- `baseUrl`: Your API base URL (e.g., http://localhost:3000)\n- `apiKey`: Your API key for Bearer authentication\n- `geofenceId`: A geofence ID (auto-populated from responses)",
+    "description": "Complete API collection for the Geofence Admin application. Includes authentication, user management, geofence management, server-side evaluation, and event logging endpoints.\n\n## Authentication\n\nThe API supports two authentication methods:\n\n1. **API Key**: Add `Authorization: Bearer YOUR_API_KEY` header (set `GEOFENCE_API_KEY` in admin .env)\n2. **Session**: Login via `/api/auth/register` and `/api/auth/signin` (handled by NextAuth)\n\n## Environment Variables\n\nSet these variables in Postman:\n- `baseUrl`: Your API base URL (e.g., https://geofence.demo.now.hclsoftware.cloud/)\n- `apiKey`: Your API key for Bearer authentication\n- `geofenceId`: A geofence ID (auto-populated from responses)\n- `userId`: A user ID (auto-populated from responses)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "geofence-admin"
   },
@@ -79,10 +79,75 @@
             },
             "description": "Get all registered users. Password hashes are excluded from the response for security.\n\n**Authentication:** Required (API key or session)\n\n**Response (200):**\n```json\n{\n  \"users\": [\n    {\n      \"id\": \"uuid\",\n      \"username\": \"johndoe\",\n      \"name\": \"John Doe\",\n      \"createdAt\": \"2025-01-01T00:00:00.000Z\",\n      \"updatedAt\": \"2025-01-01T00:00:00.000Z\"\n    }\n  ]\n}\n```\n\n**Note:** Password field is intentionally excluded from the response.\n\n**Errors:**\n- 401: Unauthorized\n- 500: Server error"
           },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Auto-populate userId from response",
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.users && response.users.length > 0) {",
+                  "        pm.environment.set('userId', response.users[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "description": "API Key authentication"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"newpassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}"]
+            },
+            "description": "Update a user's information including password reset. All fields are optional.\n\n**Authentication:** Required (API key or session)\n\n**URL Parameters:**\n- `id`: User UUID\n\n**Request Body (all optional):**\n- `username` (string): New username (min 3 characters)\n- `password` (string): New password (min 6 characters) - will be bcrypt hashed\n- `name` (string): User's display name\n\n**Response (200):**\n```json\n{\n  \"user\": {\n    \"id\": \"uuid\",\n    \"username\": \"johndoe\",\n    \"name\": \"John Doe\",\n    \"createdAt\": \"2025-01-01T00:00:00.000Z\",\n    \"updatedAt\": \"2025-01-01T12:00:00.000Z\"\n  }\n}\n```\n\n**Note:** Password is never returned in the response for security.\n\n**Use Cases:**\n- Password reset: `{\"password\": \"newpassword123\"}`\n- Update username: `{\"username\": \"newusername\"}`\n- Update display name: `{\"name\": \"New Name\"}`\n- Update all fields: `{\"username\": \"newuser\", \"password\": \"newpass\", \"name\": \"New Name\"}`\n\n**Errors:**\n- 400: Validation failed (e.g., password too short)\n- 401: Unauthorized\n- 404: User not found\n- 409: Username already exists\n- 500: Server error"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{apiKey}}",
+                "description": "API Key authentication"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "{{userId}}"]
+            },
+            "description": "Delete a user permanently.\n\n**Authentication:** Required (API key or session)\n\n**URL Parameters:**\n- `id`: User UUID\n\n**Response (200):**\n```json\n{\n  \"message\": \"User deleted successfully\"\n}\n```\n\n**Errors:**\n- 401: Unauthorized\n- 404: User not found\n- 500: Server error"
+          },
           "response": []
         }
       ],
-      "description": "User management endpoints for viewing registered users."
+      "description": "User management endpoints for viewing, updating, and deleting users."
     },
     {
       "name": "Geofences (Authenticated)",
@@ -352,16 +417,21 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "http://localhost:3000",
+      "value": "https://geofence.demo.now.hclsoftware.cloud/",
       "type": "string"
     },
     {
       "key": "apiKey",
-      "value": "your-api-key-here",
+      "value": "bb79cee16083352b86b20381ac63cbc552e049e878dd142b79166f84ea263ffc",
       "type": "string"
     },
     {
       "key": "geofenceId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
       "value": "",
       "type": "string"
     }
