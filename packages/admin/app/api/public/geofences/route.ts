@@ -23,9 +23,7 @@ export async function GET() {
       select: {
         id: true,
         name: true,
-        latitude: true,
-        longitude: true,
-        radius: true,
+        coordinates: true, // 8-vertex polygon
       },
       orderBy: { createdAt: "desc" },
     })

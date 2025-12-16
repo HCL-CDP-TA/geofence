@@ -18,15 +18,13 @@ model User {
 }
 
 model Geofence {
-  id        String          @id @default(cuid())
-  name      String
-  latitude  Float
-  longitude Float
-  radius    Float           // in meters
-  enabled   Boolean         @default(true)
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
-  events    GeofenceEvent[] // Relation to events
+  id          String          @id @default(cuid())
+  name        String
+  coordinates Json            // Array of exactly 8 {lat: number, lng: number} points
+  enabled     Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  events      GeofenceEvent[] // Relation to events
 
   @@index([enabled])
 }

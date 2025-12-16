@@ -34,9 +34,7 @@ export async function GET(request: NextRequest) {
         geofence: {
           select: {
             name: true,
-            latitude: true,
-            longitude: true,
-            radius: true,
+            coordinates: true,
           },
         },
       },
@@ -50,9 +48,7 @@ export async function GET(request: NextRequest) {
       geofence: {
         id: event.geofenceId,
         name: event.geofence.name,
-        latitude: event.geofence.latitude,
-        longitude: event.geofence.longitude,
-        radius: event.geofence.radius,
+        coordinates: event.geofence.coordinates,
       },
       position: {
         latitude: event.latitude,

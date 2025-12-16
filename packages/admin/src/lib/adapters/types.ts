@@ -7,9 +7,7 @@ export interface GeofenceEventData {
   geofence: {
     id: string;
     name: string;
-    latitude: number;
-    longitude: number;
-    radius: number;
+    coordinates: Array<{ lat: number; lng: number }>; // 8-vertex polygon
   };
   position: {
     latitude: number;

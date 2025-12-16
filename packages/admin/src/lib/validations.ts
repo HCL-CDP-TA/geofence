@@ -14,20 +14,27 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+// Coordinate schema
+const coordinateSchema = z.object({
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+});
+
 // Geofence schemas
 export const createGeofenceSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  latitude: z.number().min(-90).max(90),
-  longitude: z.number().min(-180).max(180),
-  radius: z.number().min(1, 'Radius must be at least 1 meter'),
+  coordinates: z
+    .array(coordinateSchema)
+    .length(8, 'Geofence must have exactly 8 points'),
   enabled: z.boolean().default(true),
 });
 
 export const updateGeofenceSchema = z.object({
   name: z.string().min(1, 'Name is required').optional(),
-  latitude: z.number().min(-90).max(90).optional(),
-  longitude: z.number().min(-180).max(180).optional(),
-  radius: z.number().min(1, 'Radius must be at least 1 meter').optional(),
+  coordinates: z
+    .array(coordinateSchema)
+    .length(8, 'Geofence must have exactly 8 points')
+    .optional(),
   enabled: z.boolean().optional(),
 });
 

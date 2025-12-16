@@ -4,6 +4,7 @@ import { isAuthenticated } from "@/src/lib/api-auth"
 import { prisma } from "@/src/lib/prisma"
 import { updateGeofenceSchema } from "@/src/lib/validations"
 import { corsJsonResponse, handleOptions } from "@/src/lib/cors"
+import { invalidateGeofenceCache } from "@/src/lib/services/geofence-evaluator"
 
 // OPTIONS /api/geofences/[id] - Handle CORS preflight
 export async function OPTIONS() {
@@ -43,6 +44,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       data: result.data,
     })
 
+    // Invalidate cache to force refresh on next evaluation
+    invalidateGeofenceCache()
+
     return corsJsonResponse({
       geofence,
       message: "Geofence updated successfully",
@@ -77,6 +81,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     await prisma.geofence.delete({
       where: { id },
     })
+
+    // Invalidate cache to force refresh on next evaluation
+    invalidateGeofenceCache()
 
     return corsJsonResponse({
       message: "Geofence deleted successfully",

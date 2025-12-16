@@ -6,9 +6,7 @@ import { Button } from '../ui/Button';
 interface Geofence {
   id: string;
   name: string;
-  latitude: number;
-  longitude: number;
-  radius: number;
+  coordinates: Array<{ lat: number; lng: number }>;
   enabled: boolean;
 }
 
@@ -63,9 +61,13 @@ export function GeofenceList({
                   <div className="flex-1 min-w-0">
                     <h3 className="font-medium text-gray-900 truncate">{geofence.name}</h3>
                     <p className="text-sm text-gray-500 mt-1">
-                      {geofence.latitude.toFixed(4)}, {geofence.longitude.toFixed(4)}
+                      8-point polygon
                     </p>
-                    <p className="text-sm text-gray-500">Radius: {geofence.radius}m</p>
+                    {geofence.coordinates.length > 0 && (
+                      <p className="text-sm text-gray-500">
+                        {geofence.coordinates[0].lat.toFixed(4)}, {geofence.coordinates[0].lng.toFixed(4)} ...
+                      </p>
+                    )}
                   </div>
                   <Switch
                     checked={geofence.enabled}

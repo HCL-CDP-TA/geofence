@@ -18,12 +18,15 @@ const Map = dynamic(() => import("@/src/components/map/LeafletMap").then(mod => 
   ),
 })
 
+interface Coordinate {
+  lat: number
+  lng: number
+}
+
 interface Geofence {
   id: string
   name: string
-  latitude: number
-  longitude: number
-  radius: number
+  coordinates: Coordinate[]
   enabled: boolean
 }
 
@@ -34,11 +37,8 @@ export default function Dashboard() {
   const [selectedGeofence, setSelectedGeofence] = useState<Geofence | null>(null)
   const [isCreateFormVisible, setIsCreateFormVisible] = useState(false)
   const [editingGeofence, setEditingGeofence] = useState<Geofence | null>(null)
-  const [clickedLocation, setClickedLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [previewGeofence, setPreviewGeofence] = useState<{
-    latitude: number
-    longitude: number
-    radius: number
+    coordinates: Coordinate[]
     name?: string
   } | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -69,13 +69,33 @@ export default function Dashboard() {
     }
   }, [status])
 
+  // Generate an 8-point square centered on the clicked location
+  const generateInitialPolygon = (lat: number, lng: number): Coordinate[] => {
+    // Default size: ~100m radius from center
+    const offset = 0.001 // ~111m at equator
+
+    return [
+      { lat: lat + offset, lng: lng - offset }, // NW
+      { lat: lat + offset, lng: lng }, // N
+      { lat: lat + offset, lng: lng + offset }, // NE
+      { lat: lat, lng: lng + offset }, // E
+      { lat: lat - offset, lng: lng + offset }, // SE
+      { lat: lat - offset, lng: lng }, // S
+      { lat: lat - offset, lng: lng - offset }, // SW
+      { lat: lat, lng: lng - offset }, // W
+    ]
+  }
+
   const handleMapClick = (lat: number, lng: number) => {
-    setClickedLocation({ lat, lng })
-    setPreviewGeofence({ latitude: lat, longitude: lng, radius: 100, name: "" })
+    // Don't create new geofences when editing an existing one
+    if (editingGeofence) return
+
+    const initialCoordinates = generateInitialPolygon(lat, lng)
+    setPreviewGeofence({ coordinates: initialCoordinates, name: "" })
     setIsCreateFormVisible(true)
   }
 
-  const handleCreateGeofence = async (data: Omit<Geofence, "id" | "createdAt" | "updatedAt">) => {
+  const handleCreateGeofence = async (data: { name: string; coordinates: Coordinate[]; enabled: boolean }) => {
     setIsLoading(true)
     try {
       const response = await fetch("/api/geofences", {
@@ -87,10 +107,10 @@ export default function Dashboard() {
       if (response.ok) {
         await fetchGeofences()
         setIsCreateFormVisible(false)
-        setClickedLocation(null)
         setPreviewGeofence(null)
       } else {
-        alert("Failed to create geofence")
+        const errorData = await response.json()
+        alert(`Failed to create geofence: ${errorData.error || "Unknown error"}`)
       }
     } catch (error) {
       console.error("Error creating geofence:", error)
@@ -100,7 +120,7 @@ export default function Dashboard() {
     }
   }
 
-  const handleUpdateGeofence = async (data: Omit<Geofence, "id" | "createdAt" | "updatedAt">) => {
+  const handleUpdateGeofence = async (data: { name: string; coordinates: Coordinate[]; enabled: boolean }) => {
     if (!editingGeofence) return
 
     setIsLoading(true)
@@ -115,7 +135,8 @@ export default function Dashboard() {
         await fetchGeofences()
         setEditingGeofence(null)
       } else {
-        alert("Failed to update geofence")
+        const errorData = await response.json()
+        alert(`Failed to update geofence: ${errorData.error || "Unknown error"}`)
       }
     } catch (error) {
       console.error("Error updating geofence:", error)
@@ -166,6 +187,21 @@ export default function Dashboard() {
     setIsCreateFormVisible(false) // Hide create form if visible
   }
 
+  const handleVerticesDrag = (coordinates: Coordinate[]) => {
+    if (editingGeofence) {
+      setEditingGeofence({
+        ...editingGeofence,
+        coordinates,
+      })
+    } else if (previewGeofence) {
+      // Update preview polygon when dragging vertices during creation
+      setPreviewGeofence({
+        ...previewGeofence,
+        coordinates,
+      })
+    }
+  }
+
   const handleSignOut = () => {
     signOut({ callbackUrl: "/login" })
   }
@@ -210,33 +246,9 @@ export default function Dashboard() {
             onGeofenceClick={setSelectedGeofence}
             selectedGeofenceId={selectedGeofence?.id}
             editingGeofence={editingGeofence}
+            onVerticesDrag={handleVerticesDrag}
             isCreating={isCreateFormVisible}
             previewGeofence={previewGeofence}
-            onPreviewRadiusChange={radius => {
-              if (previewGeofence) {
-                setPreviewGeofence({
-                  ...previewGeofence,
-                  radius: radius,
-                })
-              }
-            }}
-            onGeofenceDrag={(lat, lng) => {
-              if (editingGeofence) {
-                setEditingGeofence({
-                  ...editingGeofence,
-                  latitude: lat,
-                  longitude: lng,
-                })
-              }
-            }}
-            onRadiusChange={radius => {
-              if (editingGeofence) {
-                setEditingGeofence({
-                  ...editingGeofence,
-                  radius: radius,
-                })
-              }
-            }}
           />
         </div>
 
@@ -247,13 +259,10 @@ export default function Dashboard() {
             <div className="bg-white rounded-lg shadow-lg p-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Create Geofence</h3>
               <GeofenceForm
-                initialLat={clickedLocation?.lat}
-                initialLng={clickedLocation?.lng}
-                initialRadius={previewGeofence?.radius}
+                coordinates={previewGeofence?.coordinates}
                 onSubmit={handleCreateGeofence}
                 onCancel={() => {
                   setIsCreateFormVisible(false)
-                  setClickedLocation(null)
                   setPreviewGeofence(null)
                 }}
                 onNameChange={name => {
@@ -302,7 +311,6 @@ export default function Dashboard() {
               onEdit={handleEditClick}
               onDelete={handleDeleteGeofence}
               onCreate={() => {
-                setClickedLocation(null)
                 setEditingGeofence(null) // Clear edit form if visible
                 setIsCreateFormVisible(true)
               }}

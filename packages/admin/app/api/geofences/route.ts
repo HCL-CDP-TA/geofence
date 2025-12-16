@@ -4,6 +4,7 @@ import { isAuthenticated } from "@/src/lib/api-auth"
 import { prisma } from "@/src/lib/prisma"
 import { createGeofenceSchema } from "@/src/lib/validations"
 import { corsJsonResponse, handleOptions } from "@/src/lib/cors"
+import { invalidateGeofenceCache } from "@/src/lib/services/geofence-evaluator"
 
 // OPTIONS /api/geofences - Handle CORS preflight
 export async function OPTIONS() {
@@ -52,6 +53,9 @@ export async function POST(request: Request) {
     const geofence = await prisma.geofence.create({
       data: result.data,
     })
+
+    // Invalidate cache to force refresh on next evaluation
+    invalidateGeofenceCache()
 
     return corsJsonResponse({ geofence, message: "Geofence created successfully" }, { status: 201 })
   } catch (error) {

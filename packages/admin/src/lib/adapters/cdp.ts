@@ -66,9 +66,7 @@ export class CDPAdapter implements EventAdapter {
           app_id: event.appId,
           geofence_id: event.geofence.id,
           geofence_name: event.geofence.name,
-          geofence_latitude: event.geofence.latitude,
-          geofence_longitude: event.geofence.longitude,
-          geofence_radius: event.geofence.radius,
+          geofence_coordinates: event.geofence.coordinates, // Full 8-point polygon
           user_latitude: event.position.latitude,
           user_longitude: event.position.longitude,
           accuracy: event.position.accuracy,

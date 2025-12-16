@@ -26,7 +26,8 @@ This is a geofencing monorepo that consists of:
 - **Purpose**: Browser-based geofencing library that uses the Geolocation API
 - **Build Tool**: tsup for dual ESM/CJS builds with TypeScript declarations
 - **Core Class**: `GeofenceMonitor` - event-driven API for monitoring geofence entry/exit
-- **Distance Calculation**: Haversine formula implementation in [packages/sdk/src/utils/distance.ts](packages/sdk/src/utils/distance.ts)
+- **Geofence Shape**: 8-vertex polygons for precise geographic boundaries
+- **Detection Algorithm**: Ray casting algorithm for point-in-polygon detection in [packages/sdk/src/utils/distance.ts](packages/sdk/src/utils/distance.ts)
 - **Test Mode**: Supports `testMode: true` option to enable manual position control via `setTestPosition(lat, lng)`
 - **Manual Refresh**: `refreshGeofences()` method to update geofences without restarting monitor
 - **Configurable Polling**: `pollingInterval` option controls how often position is checked (default: 10000ms)
@@ -54,7 +55,7 @@ This is a geofencing monorepo that consists of:
 Located in [packages/admin/prisma/schema.prisma](packages/admin/prisma/schema.prisma):
 
 - **User**: Authentication users with bcrypt-hashed passwords
-- **Geofence**: Geographic zones with latitude, longitude, radius, and enabled status
+- **Geofence**: Geographic zones defined as 8-vertex polygons stored in JSONB `coordinates` field, with enabled status
 - **UserGeofenceState**: Tracks active geofences per (appId, userId) for server-side evaluation
   - Uses composite unique constraint `@@unique([appId, userId])` to support multiple apps
   - Default `appId: "default-app"` for backward compatibility
@@ -469,9 +470,16 @@ Your backend must provide a public endpoint that returns enabled geofences:
   {
     "id": "uuid",
     "name": "Store Location",
-    "latitude": 37.7749,
-    "longitude": -122.4194,
-    "radius": 100,
+    "coordinates": [
+      { "lat": 37.7749, "lng": -122.4194 },
+      { "lat": 37.7750, "lng": -122.4194 },
+      { "lat": 37.7750, "lng": -122.4195 },
+      { "lat": 37.7749, "lng": -122.4195 },
+      { "lat": 37.7748, "lng": -122.4195 },
+      { "lat": 37.7748, "lng": -122.4194 },
+      { "lat": 37.7748, "lng": -122.4193 },
+      { "lat": 37.7749, "lng": -122.4193 }
+    ],
     "enabled": true
   }
 ]
@@ -640,9 +648,12 @@ export default {
 
 - Fetches enabled geofences from `/api/public/geofences` once at startup
 - Polls user's position using Geolocation API at configured interval (default: 10s)
-- Calculates distance using Haversine formula against cached geofences
-- Emits 'enter' event when user enters a geofence radius
-- Emits 'exit' event when user leaves a geofence radius
+- Uses **ray casting algorithm** to determine if position is inside each 8-vertex polygon
+  - Casts horizontal ray from point, counts intersections with polygon edges
+  - Odd number of intersections = inside, even number = outside
+  - O(8) = O(1) constant time performance per geofence
+- Emits 'enter' event when user enters a geofence polygon
+- Emits 'exit' event when user leaves a geofence polygon
 - Maintains state of currently active geofences to detect transitions
 - **Note**: Geofences are cached after initial fetch - use `refreshGeofences()` to update
 
@@ -651,8 +662,11 @@ export default {
 UI components in [packages/admin/src/components](packages/admin/src/components):
 
 - `GeofenceList`: Displays and manages geofences with inline editing
-- `GeofenceForm`: Modal form for creating/editing geofences
-- `LeafletMap`: Interactive map for visualizing and creating geofences
+- `GeofenceForm`: Form for naming geofences and setting enabled status (polygon shape edited on map)
+- `LeafletMap`: Interactive map for visualizing, creating, and editing 8-vertex polygon geofences
+  - **Creating**: Click map → 8-point square appears → drag vertices to reshape → save
+  - **Editing**: Select geofence → click Edit → drag vertices → update
+  - Draggable vertex markers for precise polygon shaping
 - UI primitives: Button, Modal, Switch (custom Tailwind components)
 
 ## Development Workflow

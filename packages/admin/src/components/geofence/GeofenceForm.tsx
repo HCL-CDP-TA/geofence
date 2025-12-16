@@ -3,21 +3,22 @@
 import { useState, useEffect } from "react"
 import { Button } from "../ui/Button"
 
+interface Coordinate {
+  lat: number
+  lng: number
+}
+
 interface Geofence {
   id: string
   name: string
-  latitude: number
-  longitude: number
-  radius: number
+  coordinates: Coordinate[]
   enabled: boolean
 }
 
 interface GeofenceFormProps {
   geofence?: Geofence
-  initialLat?: number
-  initialLng?: number
-  initialRadius?: number
-  onSubmit: (data: Omit<Geofence, "id" | "createdAt" | "updatedAt">) => void
+  coordinates?: Coordinate[]
+  onSubmit: (data: { name: string; coordinates: Coordinate[]; enabled: boolean }) => void
   onCancel: () => void
   onNameChange?: (name: string) => void
   isLoading?: boolean
@@ -25,15 +26,14 @@ interface GeofenceFormProps {
 
 export function GeofenceForm({
   geofence,
-  initialLat,
-  initialLng,
-  initialRadius,
+  coordinates,
   onSubmit,
   onCancel,
   onNameChange,
   isLoading = false,
 }: GeofenceFormProps) {
   const [name, setName] = useState(geofence?.name || "")
+  const [enabled, setEnabled] = useState(geofence?.enabled ?? true)
 
   const handleNameChange = (newName: string) => {
     setName(newName)
@@ -41,73 +41,31 @@ export function GeofenceForm({
       onNameChange(newName)
     }
   }
-  const [latitude, setLatitude] = useState(geofence?.latitude?.toString() || initialLat?.toString() || "")
-  const [longitude, setLongitude] = useState(geofence?.longitude?.toString() || initialLng?.toString() || "")
-  const [radius, setRadius] = useState(geofence?.radius?.toString() || "100")
-  const [enabled, setEnabled] = useState(geofence?.enabled ?? true)
-  const [isGettingLocation, setIsGettingLocation] = useState(false)
 
-  useEffect(() => {
-    if (initialLat !== undefined && initialLng !== undefined && !geofence) {
-      setLatitude(initialLat.toFixed(6))
-      setLongitude(initialLng.toFixed(6))
-    }
-  }, [initialLat, initialLng, geofence])
-
-  useEffect(() => {
-    if (initialRadius !== undefined && !geofence) {
-      setRadius(initialRadius.toString())
-    }
-  }, [initialRadius, geofence])
-
-  // Update form when geofence prop changes (e.g., from dragging)
+  // Update form when geofence prop changes
   useEffect(() => {
     if (geofence) {
-      setLatitude(geofence.latitude.toString())
-      setLongitude(geofence.longitude.toString())
-      setRadius(geofence.radius.toString())
-      setEnabled(geofence.enabled)
       setName(geofence.name)
+      setEnabled(geofence.enabled)
     }
-  }, [geofence?.latitude, geofence?.longitude, geofence?.radius, geofence?.enabled, geofence?.name])
+  }, [geofence])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    onSubmit({
-      name,
-      latitude: parseFloat(latitude),
-      longitude: parseFloat(longitude),
-      radius: parseFloat(radius),
-      enabled,
-    })
-  }
+    // Use geofence coordinates if editing, or provided coordinates if creating
+    const coords = geofence?.coordinates || coordinates || []
 
-  const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser")
+    if (coords.length !== 8) {
+      alert("Geofence must have exactly 8 points. Please create the polygon on the map first.")
       return
     }
 
-    setIsGettingLocation(true)
-
-    navigator.geolocation.getCurrentPosition(
-      position => {
-        setLatitude(position.coords.latitude.toFixed(6))
-        setLongitude(position.coords.longitude.toFixed(6))
-        setIsGettingLocation(false)
-      },
-      error => {
-        console.error("Error getting location:", error)
-        alert(`Failed to get location: ${error.message}`)
-        setIsGettingLocation(false)
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0,
-      },
-    )
+    onSubmit({
+      name,
+      coordinates: coords,
+      enabled,
+    })
   }
 
   return (
@@ -127,68 +85,29 @@ export function GeofenceForm({
         />
       </div>
 
-      <div>
-        <div className="flex items-center justify-between mb-1">
-          <label className="block text-sm font-medium text-gray-700">Location</label>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={handleUseCurrentLocation}
-            disabled={isGettingLocation || isLoading}>
-            {isGettingLocation ? "Getting location..." : "Use Current Location"}
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label htmlFor="latitude" className="block text-xs text-gray-600 mb-1">
-              Latitude
-            </label>
-            <input
-              id="latitude"
-              type="number"
-              step="any"
-              required
-              value={latitude}
-              onChange={e => setLatitude(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="40.7128"
-            />
-          </div>
-
-          <div>
-            <label htmlFor="longitude" className="block text-xs text-gray-600 mb-1">
-              Longitude
-            </label>
-            <input
-              id="longitude"
-              type="number"
-              step="any"
-              required
-              value={longitude}
-              onChange={e => setLongitude(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="-74.0060"
-            />
-          </div>
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="radius" className="block text-sm font-medium text-gray-700 mb-1">
-          Radius (meters)
-        </label>
-        <input
-          id="radius"
-          type="number"
-          min="1"
-          required
-          value={radius}
-          onChange={e => setRadius(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          placeholder="100"
-        />
+      <div className="bg-gray-50 border border-gray-200 rounded-md p-3">
+        <p className="text-sm text-gray-600 mb-2">Polygon Shape</p>
+        {geofence?.coordinates.length === 8 ? (
+          <p className="text-sm text-gray-700">
+            8-point polygon defined
+            <span className="block text-xs text-gray-500 mt-1">
+              {geofence.coordinates[0] &&
+                `Starting at ${geofence.coordinates[0].lat.toFixed(5)}, ${geofence.coordinates[0].lng.toFixed(5)}`}
+            </span>
+          </p>
+        ) : coordinates?.length === 8 ? (
+          <p className="text-sm text-gray-700">
+            8-point polygon ready
+            <span className="block text-xs text-gray-500 mt-1">
+              {coordinates[0] &&
+                `Starting at ${coordinates[0].lat.toFixed(5)}, ${coordinates[0].lng.toFixed(5)}`}
+            </span>
+          </p>
+        ) : (
+          <p className="text-sm text-gray-500">
+            Click the map to create an 8-point polygon, then drag vertices to reshape
+          </p>
+        )}
       </div>
 
       <div className="flex items-center">

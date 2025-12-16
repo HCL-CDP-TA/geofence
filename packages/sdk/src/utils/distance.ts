@@ -1,10 +1,10 @@
-// Haversine formula for calculating distance between two coordinates
-// Returns distance in meters
+// Geofence detection utilities
 
 const EARTH_RADIUS_METERS = 6371000;
 
 /**
  * Calculate the distance between two geographic coordinates using the Haversine formula
+ * Used for movement threshold detection in server evaluation mode
  * @param lat1 Latitude of first point in degrees
  * @param lon1 Longitude of first point in degrees
  * @param lat2 Latitude of second point in degrees
@@ -34,21 +34,44 @@ export function calculateDistance(
 }
 
 /**
- * Check if a point is inside a circular geofence
+ * Check if a point is inside a polygon using the ray casting algorithm
  * @param pointLat Latitude of the point to check
  * @param pointLon Longitude of the point to check
- * @param centerLat Latitude of geofence center
- * @param centerLon Longitude of geofence center
- * @param radius Radius of geofence in meters
- * @returns True if point is inside the geofence
+ * @param coordinates Array of polygon vertices (must be exactly 8 points)
+ * @returns True if point is inside the polygon
  */
-export function isPointInGeofence(
+export function isPointInPolygon(
   pointLat: number,
   pointLon: number,
-  centerLat: number,
-  centerLon: number,
-  radius: number
+  coordinates: Array<{ lat: number; lng: number }>
 ): boolean {
-  const distance = calculateDistance(pointLat, pointLon, centerLat, centerLon);
-  return distance <= radius;
+  // Must have exactly 8 points (per requirements)
+  if (coordinates.length !== 8) {
+    console.error('Geofence must have exactly 8 coordinates');
+    return false;
+  }
+
+  let inside = false;
+
+  // Ray casting algorithm (optimized for 8 points)
+  // Cast a horizontal ray from the point to infinity (eastward)
+  // Count how many polygon edges the ray crosses
+  // Odd crossings = inside, even crossings = outside
+  for (let i = 0, j = 7; i < 8; j = i++) {
+    const xi = coordinates[i].lng;
+    const yi = coordinates[i].lat;
+    const xj = coordinates[j].lng;
+    const yj = coordinates[j].lat;
+
+    // Check if ray crosses edge between vertices i and j
+    const intersect =
+      yi > pointLat !== yj > pointLat &&
+      pointLon < ((xj - xi) * (pointLat - yi)) / (yj - yi) + xi;
+
+    if (intersect) {
+      inside = !inside;
+    }
+  }
+
+  return inside;
 }

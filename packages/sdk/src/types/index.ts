@@ -12,12 +12,15 @@ export interface GeofenceMonitorOptions {
   significantMovementThreshold?: number; // meters, default: 50 - only report position when moved this distance
 }
 
+export interface Coordinate {
+  lat: number;
+  lng: number;
+}
+
 export interface Geofence {
   id: string;
   name: string;
-  latitude: number;
-  longitude: number;
-  radius: number; // meters
+  coordinates: Coordinate[]; // Array of exactly 8 vertices
 }
 
 export type GeofenceEvent = 'enter' | 'exit' | 'error' | 'position';

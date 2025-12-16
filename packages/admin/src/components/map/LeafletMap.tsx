@@ -1,15 +1,18 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import type { Map as LeafletMap, CircleMarker } from "leaflet"
+import type { Map as LeafletMap } from "leaflet"
 import { LocateFixed } from "lucide-react"
+
+interface Coordinate {
+  lat: number
+  lng: number
+}
 
 interface Geofence {
   id: string
   name: string
-  latitude: number
-  longitude: number
-  radius: number
+  coordinates: Coordinate[]
   enabled: boolean
 }
 
@@ -19,11 +22,9 @@ interface LeafletMapProps {
   onGeofenceClick?: (geofence: Geofence) => void
   selectedGeofenceId?: string | null
   editingGeofence?: Geofence | null
-  onGeofenceDrag?: (lat: number, lng: number) => void
-  onRadiusChange?: (radius: number) => void
+  onVerticesDrag?: (coordinates: Coordinate[]) => void
   isCreating?: boolean
-  previewGeofence?: { latitude: number; longitude: number; radius: number; name?: string } | null
-  onPreviewRadiusChange?: (radius: number) => void
+  previewGeofence?: { coordinates: Coordinate[]; name?: string } | null
 }
 
 export function Map({
@@ -32,11 +33,9 @@ export function Map({
   onGeofenceClick,
   selectedGeofenceId,
   editingGeofence,
-  onGeofenceDrag,
-  onRadiusChange,
+  onVerticesDrag,
   isCreating,
   previewGeofence,
-  onPreviewRadiusChange,
 }: LeafletMapProps) {
   const mapRef = useRef<LeafletMap | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -46,12 +45,12 @@ export function Map({
   const currentLocationMarkerRef = useRef<any>(null)
   const hasAutoFittedRef = useRef(false)
   const [isDragging, setIsDragging] = useState(false)
+  const vertexMarkersRef = useRef<any[]>([])
 
   useEffect(() => {
     // Import Leaflet dynamically to avoid SSR issues
     const initMap = async () => {
       const L = (await import("leaflet")).default
-      // CSS is imported in layout.tsx or globals.css instead
 
       if (!containerRef.current || mapRef.current) return
 
@@ -121,168 +120,114 @@ export function Map({
     const map = mapRef.current
 
     // Clear existing layers (except base tile layer)
-    map.eachLayer(layer => {
-      if (layer instanceof L.Circle || layer instanceof L.CircleMarker || layer instanceof L.Marker) {
+    map.eachLayer((layer: any) => {
+      if (layer instanceof L.Polygon || layer instanceof L.CircleMarker || layer instanceof L.Marker) {
         map.removeLayer(layer)
       }
     })
 
-    // Add geofences
+    // Clear vertex markers
+    vertexMarkersRef.current = []
+
+    // Add geofences as polygons
     geofences.forEach(geofence => {
+      if (!geofence.coordinates || geofence.coordinates.length !== 8) {
+        console.warn(`Geofence ${geofence.id} does not have exactly 8 coordinates`)
+        return
+      }
+
       const isSelected = geofence.id === selectedGeofenceId
       const isEditing = editingGeofence?.id === geofence.id
 
-      // Use editing geofence position if this is the one being edited
-      const lat = isEditing && editingGeofence ? editingGeofence.latitude : geofence.latitude
-      const lng = isEditing && editingGeofence ? editingGeofence.longitude : geofence.longitude
-      const radius = isEditing && editingGeofence ? editingGeofence.radius : geofence.radius
+      // Use editing geofence coordinates if this is the one being edited
+      const coords = isEditing && editingGeofence ? editingGeofence.coordinates : geofence.coordinates
 
-      // Add circle for geofence
-      const circle = L.circle([lat, lng], {
-        radius: radius,
+      // Convert to Leaflet format [[lat, lng], ...]
+      const latLngs = coords.map(c => [c.lat, c.lng])
+
+      // Add polygon
+      const polygon = L.polygon(latLngs, {
         color: isEditing ? "#f59e0b" : isSelected ? "#3b82f6" : geofence.enabled ? "#10b981" : "#6b7280",
         fillColor: isEditing ? "#f59e0b" : isSelected ? "#3b82f6" : geofence.enabled ? "#10b981" : "#6b7280",
         fillOpacity: 0.2,
         weight: isEditing ? 3 : isSelected ? 3 : 2,
       }).addTo(map)
 
-      // Add center marker (draggable if editing)
-      const marker = L.circleMarker([lat, lng], {
-        radius: isEditing ? 8 : 6,
-        color: "white",
-        fillColor: isEditing ? "#f59e0b" : isSelected ? "#3b82f6" : geofence.enabled ? "#10b981" : "#6b7280",
-        fillOpacity: 1,
-        weight: 2,
-        draggable: false, // CircleMarker doesn't support draggable
-      }).addTo(map)
+      // If editing, add draggable vertex markers
+      if (isEditing && onVerticesDrag) {
+        const tempCoords = [...coords]
 
-      // If editing, add a draggable marker instead
-      if (isEditing && onGeofenceDrag) {
-        const draggableMarker = L.marker([lat, lng], {
-          draggable: true,
-          icon: L.divIcon({
-            className: "editing-marker",
-            html: `
-              <div style="
+        coords.forEach((coord, index) => {
+          const marker = L.marker([coord.lat, coord.lng], {
+            draggable: true,
+            icon: L.divIcon({
+              className: "vertex-marker",
+              html: `<div style="
                 width: 16px;
                 height: 16px;
                 background: #f59e0b;
-                border: 3px solid white;
+                border: 2px solid white;
                 border-radius: 50%;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                cursor: move;
-              "></div>
-            `,
-            iconSize: [16, 16],
-            iconAnchor: [8, 8],
-          }),
-        }).addTo(map)
+                box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                cursor: grab;
+              "></div>`,
+              iconSize: [16, 16],
+              iconAnchor: [8, 8],
+            }),
+          }).addTo(map)
 
-        // Update circle position during drag without re-rendering
-        draggableMarker.on("drag", (e: any) => {
-          const { lat, lng } = e.target.getLatLng()
-          circle.setLatLng([lat, lng])
-          marker.setLatLng([lat, lng])
+          // Update polygon during drag
+          marker.on("drag", (e: any) => {
+            const { lat, lng } = e.target.getLatLng()
+            tempCoords[index] = { lat, lng }
+            polygon.setLatLngs(tempCoords.map(c => [c.lat, c.lng]))
+          })
+
+          // Update state when drag is complete
+          marker.on("dragend", (e: any) => {
+            const { lat, lng } = e.target.getLatLng()
+            tempCoords[index] = { lat, lng }
+            onVerticesDrag(tempCoords)
+          })
+
+          vertexMarkersRef.current.push(marker)
         })
 
-        // Only update state when drag is complete
-        draggableMarker.on("dragend", (e: any) => {
-          const { lat, lng } = e.target.getLatLng()
-          onGeofenceDrag(lat, lng)
-        })
-
-        // Add popup showing current name and radius for editing geofence
-        const editingName = editingGeofence.name || "Geofence"
+        // Add popup for editing
         const editPopup = L.popup().setContent(`
           <div class="font-sans">
-            <strong class="text-base">${editingName}</strong><br/>
-            <span class="text-sm text-gray-600">Radius: ${radius}m</span><br/>
-            <span class="text-sm text-gray-500">Drag to move or adjust radius</span>
+            <strong class="text-base">${editingGeofence.name || "Geofence"}</strong><br/>
+            <span class="text-sm text-gray-500">Drag vertices to reshape</span>
           </div>
         `)
-        circle.bindPopup(editPopup).openPopup()
-
-        // Add a radius handle on the edge of the circle (to the right/east)
-        // Calculate a point at the edge of the circle
-        const earthRadiusKm = 6371
-        const latRad = (lat * Math.PI) / 180
-        const radiusInDegrees = (radius / 1000 / earthRadiusKm) * (180 / Math.PI)
-        const handleLat = lat
-        const handleLng = lng + radiusInDegrees / Math.cos(latRad)
-        const radiusHandleLatLng = L.latLng(handleLat, handleLng)
-
-        const radiusHandle = L.marker(radiusHandleLatLng, {
-          draggable: true,
-          icon: L.divIcon({
-            className: "radius-handle",
-            html: `
-              <div style="
-                width: 12px;
-                height: 12px;
-                background: white;
-                border: 2px solid #f59e0b;
-                border-radius: 50%;
-                box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-                cursor: ew-resize;
-              "></div>
-            `,
-            iconSize: [12, 12],
-            iconAnchor: [6, 6],
-          }),
-        }).addTo(map)
-
-        // Update circle size during drag without re-rendering
-        radiusHandle.on("drag", (e: any) => {
-          const handlePos = e.target.getLatLng()
-          const newRadius = map.distance([lat, lng], [handlePos.lat, handlePos.lng])
-          circle.setRadius(newRadius)
-        })
-
-        // Only update state when drag is complete
-        radiusHandle.on("dragend", (e: any) => {
-          const handlePos = e.target.getLatLng()
-          const newRadius = Math.round(map.distance([lat, lng], [handlePos.lat, handlePos.lng]))
-          if (onRadiusChange) {
-            onRadiusChange(newRadius)
-          }
-        })
+        polygon.bindPopup(editPopup).openPopup()
       } else {
-        // For non-editing geofences, make popup interactive
-        circle.on("click", () => {
-          circle.openPopup()
-        })
-        marker.on("click", () => {
-          circle.openPopup()
-        })
-      }
-
-      // Add popup for non-editing geofences
-      if (!isEditing) {
+        // Add popup for non-editing geofences
         const popup = L.popup().setContent(`
           <div class="font-sans">
             <strong class="text-base">${geofence.name}</strong><br/>
-            <span class="text-sm text-gray-600">Radius: ${geofence.radius}m</span><br/>
+            <span class="text-sm text-gray-600">8-point polygon</span><br/>
             <span class="text-sm text-gray-600">Status: ${geofence.enabled ? "Enabled" : "Disabled"}</span>
           </div>
         `)
-        circle.bindPopup(popup)
-        marker.bindPopup(popup)
-      }
+        polygon.bindPopup(popup)
 
-      // Handle clicks (only if not editing)
-      if (onGeofenceClick && !isEditing) {
-        circle.on("click", () => onGeofenceClick(geofence))
-        marker.on("click", () => onGeofenceClick(geofence))
+        // Handle clicks (only if not editing)
+        if (onGeofenceClick && !isEditing) {
+          polygon.on("click", () => onGeofenceClick(geofence))
+        }
       }
     })
 
     // Add preview geofence if creating
-    if (previewGeofence && onPreviewRadiusChange) {
-      const { latitude, longitude, radius } = previewGeofence
+    if (previewGeofence && previewGeofence.coordinates.length === 8 && onVerticesDrag) {
+      const { coordinates } = previewGeofence
 
-      // Add preview circle
-      const previewCircle = L.circle([latitude, longitude], {
-        radius: radius,
+      // Convert to Leaflet format
+      const latLngs = coordinates.map(c => [c.lat, c.lng])
+
+      // Add preview polygon
+      const previewPolygon = L.polygon(latLngs, {
         color: "#8b5cf6",
         fillColor: "#8b5cf6",
         fillOpacity: 0.2,
@@ -290,74 +235,69 @@ export function Map({
         dashArray: "5, 5",
       }).addTo(map)
 
-      // Add center marker
-      const previewMarker = L.circleMarker([latitude, longitude], {
-        radius: 6,
-        color: "white",
-        fillColor: "#8b5cf6",
-        fillOpacity: 1,
-        weight: 2,
-      }).addTo(map)
-
-      // Add radius handle
-      const earthRadiusKm = 6371
-      const latRad = (latitude * Math.PI) / 180
-      const radiusInDegrees = (radius / 1000 / earthRadiusKm) * (180 / Math.PI)
-      const handleLat = latitude
-      const handleLng = longitude + radiusInDegrees / Math.cos(latRad)
-      const radiusHandleLatLng = L.latLng(handleLat, handleLng)
-
-      const radiusHandle = L.marker(radiusHandleLatLng, {
-        draggable: true,
-        icon: L.divIcon({
-          className: "radius-handle",
-          html: `
-            <div style="
-              width: 12px;
-              height: 12px;
-              background: white;
-              border: 2px solid #8b5cf6;
+      // Add draggable vertex markers for preview
+      const tempCoords = [...coordinates]
+      coordinates.forEach((coord, index) => {
+        const marker = L.marker([coord.lat, coord.lng], {
+          draggable: true,
+          icon: L.divIcon({
+            className: "vertex-marker",
+            html: `<div style="
+              width: 16px;
+              height: 16px;
+              background: #8b5cf6;
+              border: 2px solid white;
               border-radius: 50%;
-              box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-              cursor: ew-resize;
-            "></div>
-          `,
-          iconSize: [12, 12],
-          iconAnchor: [6, 6],
-        }),
-      }).addTo(map)
+              box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+              cursor: grab;
+            "></div>`,
+            iconSize: [16, 16],
+            iconAnchor: [8, 8],
+          }),
+        }).addTo(map)
 
-      // Update circle size during drag
-      radiusHandle.on("drag", (e: any) => {
-        const handlePos = e.target.getLatLng()
-        const newRadius = map.distance([latitude, longitude], [handlePos.lat, handlePos.lng])
-        previewCircle.setRadius(newRadius)
+        // Update polygon during drag
+        marker.on("drag", (e: any) => {
+          const { lat, lng } = e.target.getLatLng()
+          tempCoords[index] = { lat, lng }
+          previewPolygon.setLatLngs(tempCoords.map(c => [c.lat, c.lng]))
+        })
+
+        // Update state when drag is complete
+        marker.on("dragend", (e: any) => {
+          const { lat, lng } = e.target.getLatLng()
+          tempCoords[index] = { lat, lng }
+          onVerticesDrag(tempCoords)
+        })
+
+        vertexMarkersRef.current.push(marker)
       })
 
-      // Update state when drag is complete
-      radiusHandle.on("dragend", (e: any) => {
-        const handlePos = e.target.getLatLng()
-        const newRadius = Math.round(map.distance([latitude, longitude], [handlePos.lat, handlePos.lng]))
-        onPreviewRadiusChange(newRadius)
-      })
-
-      // Add popup showing radius
+      // Add popup
       const displayName = previewGeofence.name?.trim() || "New Geofence"
       const popup = L.popup().setContent(`
         <div class="font-sans">
           <strong class="text-base">${displayName}</strong><br/>
-          <span class="text-sm text-gray-600">Radius: ${radius}m</span><br/>
-          <span class="text-sm text-gray-500">Drag the handle to adjust</span>
+          <span class="text-sm text-gray-600">8-point polygon</span><br/>
+          <span class="text-sm text-gray-500">Drag vertices to reshape</span>
         </div>
       `)
-      previewCircle.bindPopup(popup).openPopup()
+      previewPolygon.bindPopup(popup).openPopup()
     }
 
     // Fit bounds to show all geofences (only on first load)
     if (geofences.length > 0 && !hasAutoFittedRef.current) {
-      const bounds = L.latLngBounds(geofences.map(g => [g.latitude, g.longitude]))
-      map.fitBounds(bounds, { padding: [50, 50] })
-      hasAutoFittedRef.current = true
+      const allCoords: [number, number][] = []
+      geofences.forEach(g => {
+        if (g.coordinates && g.coordinates.length > 0) {
+          g.coordinates.forEach(c => allCoords.push([c.lat, c.lng]))
+        }
+      })
+      if (allCoords.length > 0) {
+        const bounds = L.latLngBounds(allCoords)
+        map.fitBounds(bounds, { padding: [50, 50] })
+        hasAutoFittedRef.current = true
+      }
     }
   }, [
     geofences,
@@ -365,10 +305,8 @@ export function Map({
     selectedGeofenceId,
     onGeofenceClick,
     editingGeofence,
-    onGeofenceDrag,
-    onRadiusChange,
+    onVerticesDrag,
     previewGeofence,
-    onPreviewRadiusChange,
   ])
 
   // Update current location marker

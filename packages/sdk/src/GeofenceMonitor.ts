@@ -8,7 +8,7 @@ import type {
   PositionReport,
   PositionReportResponse,
 } from "./types"
-import { isPointInGeofence, calculateDistance } from "./utils/distance"
+import { isPointInPolygon, calculateDistance } from "./utils/distance"
 
 type EventListener = (...args: any[]) => void
 
@@ -386,9 +386,9 @@ export class GeofenceMonitor {
 
     const newCurrentGeofences = new Set<string>()
 
-    // Check each geofence
+    // Check each geofence (polygon detection)
     for (const geofence of this.geofences) {
-      const isInside = isPointInGeofence(latitude, longitude, geofence.latitude, geofence.longitude, geofence.radius)
+      const isInside = isPointInPolygon(latitude, longitude, geofence.coordinates)
 
       if (isInside) {
         newCurrentGeofences.add(geofence.id)

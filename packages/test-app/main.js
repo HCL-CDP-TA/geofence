@@ -13,7 +13,7 @@ L.Icon.Default.mergeOptions({
 let monitor = null
 let map = null
 let currentPositionMarker = null
-let geofenceCircles = []
+let geofencePolygons = []
 let currentGeofences = new Set()
 let currentMode = "manual" // 'manual' or 'gps'
 let evaluationMode = "client" // 'client' or 'server'
@@ -65,7 +65,7 @@ function initSDK(mode = "manual") {
   const options = {
     apiUrl: "http://localhost:3000",
     appId: appId,
-    pollingInterval: 5000, // 5 seconds - more reasonable for server-side evaluation
+    pollingInterval: 2000, // 5 seconds - more reasonable for server-side evaluation
     debug: true,
     testMode: mode === "manual",
   }
@@ -240,54 +240,59 @@ function updatePositionMarker(lat, lng) {
 
 // Draw geofences on map
 function drawGeofences() {
-  // Clear existing circles
-  geofenceCircles.forEach(circle => circle.remove())
-  geofenceCircles = []
+  // Clear existing polygons
+  geofencePolygons.forEach(polygon => polygon.remove())
+  geofencePolygons = []
 
   const geofences = monitor.getGeofences()
 
   geofences.forEach(geofence => {
-    const circle = L.circle([geofence.latitude, geofence.longitude], {
-      radius: geofence.radius,
+    // Convert coordinates to Leaflet format
+    const latLngs = geofence.coordinates.map(coord => [coord.lat, coord.lng])
+
+    const polygon = L.polygon(latLngs, {
       color: "#4CAF50",
       fillColor: "#4CAF50",
       fillOpacity: 0.2,
       weight: 2,
     }).addTo(map)
 
-    circle.bindPopup(`
+    // Calculate center for popup display
+    const centerLat = geofence.coordinates.reduce((sum, c) => sum + c.lat, 0) / geofence.coordinates.length
+    const centerLng = geofence.coordinates.reduce((sum, c) => sum + c.lng, 0) / geofence.coordinates.length
+
+    polygon.bindPopup(`
       <strong>${geofence.name}</strong><br>
-      Radius: ${geofence.radius}m<br>
-      Lat: ${geofence.latitude.toFixed(6)}<br>
-      Lng: ${geofence.longitude.toFixed(6)}
+      8-point polygon<br>
+      Center: ${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}
     `)
 
     // Allow clicking on geofence to set position at that point
-    circle.on("click", e => {
+    polygon.on("click", e => {
       latitudeInput.value = e.latlng.lat.toFixed(6)
       longitudeInput.value = e.latlng.lng.toFixed(6)
       updatePosition()
     })
 
-    geofenceCircles.push(circle)
+    geofencePolygons.push(polygon)
   })
 
   // Fit map to show all geofences
-  if (geofenceCircles.length > 0) {
-    const group = L.featureGroup(geofenceCircles)
+  if (geofencePolygons.length > 0) {
+    const group = L.featureGroup(geofencePolygons)
     map.fitBounds(group.getBounds().pad(0.1))
   }
 }
 
-// Update geofence circles to show active state
+// Update geofence polygons to show active state
 function updateGeofenceCircles() {
   const geofences = monitor.getGeofences()
 
-  geofenceCircles.forEach((circle, index) => {
+  geofencePolygons.forEach((polygon, index) => {
     const geofence = geofences[index]
     const isActive = currentGeofences.has(geofence.id)
 
-    circle.setStyle({
+    polygon.setStyle({
       color: isActive ? "#FF5722" : "#4CAF50",
       fillColor: isActive ? "#FF5722" : "#4CAF50",
       fillOpacity: isActive ? 0.3 : 0.2,
@@ -308,11 +313,14 @@ function updateGeofenceList() {
   geofenceList.innerHTML = geofences
     .map(geofence => {
       const isActive = currentGeofences.has(geofence.id)
+      // Calculate center for display
+      const centerLat = geofence.coordinates.reduce((sum, c) => sum + c.lat, 0) / geofence.coordinates.length
+      const centerLng = geofence.coordinates.reduce((sum, c) => sum + c.lng, 0) / geofence.coordinates.length
       return `
       <div class="geofence-item ${isActive ? "active" : ""}">
         <strong>${geofence.name}</strong>
         <div style="font-size: 11px; color: #666; margin-top: 2px;">
-          ${geofence.latitude.toFixed(6)}, ${geofence.longitude.toFixed(6)} | ${geofence.radius}m
+          Center: ${centerLat.toFixed(6)}, ${centerLng.toFixed(6)} | 8-point polygon
         </div>
       </div>
     `
