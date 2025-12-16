@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.0](https://github.com/HCL-CDP-TA/geofence/compare/geofence-sdk-v2.0.1...geofence-sdk-v3.0.0) (2025-12-16)
+
+
+### ⚠ BREAKING CHANGES
+
+* Geofences are now defined as 8-vertex polygons instead of circles. All existing geofence data will be lost during migration.
+
+### Features
+
+* replace circular geofences with 8-vertex polygons ([c1c3170](https://github.com/HCL-CDP-TA/geofence/commit/c1c3170803e9f2a3b395575b7b5ac47d59418ff6))
+
 ## [2.0.1](https://github.com/HCL-CDP-TA/geofence/compare/geofence-sdk-v2.0.0...geofence-sdk-v2.0.1) (2025-12-12)
 
 
