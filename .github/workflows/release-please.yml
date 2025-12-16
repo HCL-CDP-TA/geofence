@@ -24,6 +24,8 @@ jobs:
         with:
           # Use personal access token instead of GITHUB_TOKEN
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
 
   publish-sdk:
     name: Publish SDK to npm
