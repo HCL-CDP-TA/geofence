@@ -5,13 +5,18 @@ export class WebhookAdapter implements EventAdapter {
   name = 'webhook';
   enabled: boolean;
   private webhookUrl: string;
+  private apiKey: string;
 
-  constructor(webhookUrl?: string) {
+  constructor(webhookUrl?: string, apiKey?: string) {
     this.webhookUrl = webhookUrl || process.env.GEOFENCE_WEBHOOK_URL || '';
+    this.apiKey = apiKey || process.env.GEOFENCE_WEBHOOK_API_KEY || '';
     this.enabled = !!this.webhookUrl;
 
     if (this.enabled) {
       console.log(`[WebhookAdapter] Enabled with URL: ${this.webhookUrl}`);
+      if (this.apiKey) {
+        console.log('[WebhookAdapter] API key configured');
+      }
     } else {
       console.log('[WebhookAdapter] Disabled - no webhook URL configured');
     }
@@ -29,11 +34,17 @@ export class WebhookAdapter implements EventAdapter {
     if (!this.enabled) return;
 
     try {
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (this.apiKey) {
+        headers['x-api-key'] = this.apiKey;
+      }
+
       const response = await fetch(this.webhookUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           app_id: event.appId,
           event_type: event.eventType,
