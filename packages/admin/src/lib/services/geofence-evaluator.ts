@@ -20,6 +20,7 @@ export interface EvaluationResult {
     geofence: {
       id: string
       name: string
+      locationId: string | null
       coordinates: Array<{ lat: number; lng: number }>
     }
     timestamp: string
@@ -43,6 +44,7 @@ interface GeofenceCache {
   data: Array<{
     id: string
     name: string
+    locationId: string | null
     coordinates: Array<{ lat: number; lng: number }>
   }>
   timestamp: number
@@ -67,6 +69,7 @@ async function getCachedGeofences() {
     select: {
       id: true,
       name: true,
+      locationId: true,
       coordinates: true,
     },
   })
@@ -76,6 +79,7 @@ async function getCachedGeofences() {
     data: geofences as Array<{
       id: string
       name: string
+      locationId: string | null
       coordinates: Array<{ lat: number; lng: number }>
     }>,
     timestamp: now,
@@ -174,6 +178,7 @@ export class GeofenceEvaluator {
           geofence: {
             id: geofence.id,
             name: geofence.name,
+            locationId: geofence.locationId,
             coordinates: geofence.coordinates as Array<{ lat: number; lng: number }>,
           },
           position: { latitude, longitude, accuracy, speed, heading },
@@ -189,6 +194,7 @@ export class GeofenceEvaluator {
           geofence: {
             id: geofence.id,
             name: geofence.name,
+            locationId: geofence.locationId,
             coordinates: geofence.coordinates as Array<{ lat: number; lng: number }>,
           },
           timestamp: new Date(timestamp).toISOString(),
@@ -209,6 +215,7 @@ export class GeofenceEvaluator {
           geofence: {
             id: geofence.id,
             name: geofence.name,
+            locationId: geofence.locationId,
             coordinates: geofence.coordinates as Array<{ lat: number; lng: number }>,
           },
           position: { latitude, longitude, accuracy, speed, heading },
@@ -224,6 +231,7 @@ export class GeofenceEvaluator {
           geofence: {
             id: geofence.id,
             name: geofence.name,
+            locationId: geofence.locationId,
             coordinates: geofence.coordinates as Array<{ lat: number; lng: number }>,
           },
           timestamp: new Date(timestamp).toISOString(),

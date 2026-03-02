@@ -20,6 +20,7 @@ model User {
 model Geofence {
   id          String          @id @default(cuid())
   name        String
+  locationId  String?         // External identifier (e.g., store ID) for integration with other platforms
   coordinates Json            // Array of exactly 8 {lat: number, lng: number} points
   enabled     Boolean         @default(true)
   createdAt   DateTime        @default(now())

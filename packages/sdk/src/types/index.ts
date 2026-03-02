@@ -20,6 +20,7 @@ export interface Coordinate {
 export interface Geofence {
   id: string;
   name: string;
+  locationId?: string | null;
   coordinates: Coordinate[]; // Array of exactly 8 vertices
 }
 

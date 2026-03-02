@@ -7,6 +7,7 @@ export interface GeofenceEventData {
   geofence: {
     id: string;
     name: string;
+    locationId: string | null; // External identifier (e.g., store ID)
     coordinates: Array<{ lat: number; lng: number }>; // 8-vertex polygon
   };
   position: {

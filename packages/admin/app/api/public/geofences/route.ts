@@ -23,6 +23,7 @@ export async function GET() {
       select: {
         id: true,
         name: true,
+        locationId: true, // External identifier (e.g., store ID)
         coordinates: true, // 8-vertex polygon
       },
       orderBy: { createdAt: "desc" },

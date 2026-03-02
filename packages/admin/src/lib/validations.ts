@@ -23,6 +23,7 @@ const coordinateSchema = z.object({
 // Geofence schemas
 export const createGeofenceSchema = z.object({
   name: z.string().min(1, 'Name is required'),
+  locationId: z.string().optional(),
   coordinates: z
     .array(coordinateSchema)
     .length(8, 'Geofence must have exactly 8 points'),
@@ -31,6 +32,7 @@ export const createGeofenceSchema = z.object({
 
 export const updateGeofenceSchema = z.object({
   name: z.string().min(1, 'Name is required').optional(),
+  locationId: z.string().optional(),
   coordinates: z
     .array(coordinateSchema)
     .length(8, 'Geofence must have exactly 8 points')

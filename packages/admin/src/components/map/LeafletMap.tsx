@@ -12,6 +12,7 @@ interface Coordinate {
 interface Geofence {
   id: string
   name: string
+  locationId: string | null
   coordinates: Coordinate[]
   enabled: boolean
 }

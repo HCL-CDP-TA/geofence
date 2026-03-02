@@ -26,6 +26,7 @@ interface Coordinate {
 interface Geofence {
   id: string
   name: string
+  locationId: string | null
   coordinates: Coordinate[]
   enabled: boolean
 }
@@ -95,7 +96,7 @@ export default function Dashboard() {
     setIsCreateFormVisible(true)
   }
 
-  const handleCreateGeofence = async (data: { name: string; coordinates: Coordinate[]; enabled: boolean }) => {
+  const handleCreateGeofence = async (data: { name: string; locationId?: string; coordinates: Coordinate[]; enabled: boolean }) => {
     setIsLoading(true)
     try {
       const response = await fetch("/api/geofences", {
@@ -120,7 +121,7 @@ export default function Dashboard() {
     }
   }
 
-  const handleUpdateGeofence = async (data: { name: string; coordinates: Coordinate[]; enabled: boolean }) => {
+  const handleUpdateGeofence = async (data: { name: string; locationId?: string; coordinates: Coordinate[]; enabled: boolean }) => {
     if (!editingGeofence) return
 
     setIsLoading(true)

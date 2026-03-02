@@ -6,6 +6,7 @@ import { Button } from '../ui/Button';
 interface Geofence {
   id: string;
   name: string;
+  locationId: string | null;
   coordinates: Array<{ lat: number; lng: number }>;
   enabled: boolean;
 }

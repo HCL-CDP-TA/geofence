@@ -11,6 +11,7 @@ interface Coordinate {
 interface Geofence {
   id: string
   name: string
+  locationId: string | null
   coordinates: Coordinate[]
   enabled: boolean
 }
@@ -18,7 +19,7 @@ interface Geofence {
 interface GeofenceFormProps {
   geofence?: Geofence
   coordinates?: Coordinate[]
-  onSubmit: (data: { name: string; coordinates: Coordinate[]; enabled: boolean }) => void
+  onSubmit: (data: { name: string; locationId?: string; coordinates: Coordinate[]; enabled: boolean }) => void
   onCancel: () => void
   onNameChange?: (name: string) => void
   isLoading?: boolean
@@ -33,6 +34,7 @@ export function GeofenceForm({
   isLoading = false,
 }: GeofenceFormProps) {
   const [name, setName] = useState(geofence?.name || "")
+  const [locationId, setLocationId] = useState(geofence?.locationId || "")
   const [enabled, setEnabled] = useState(geofence?.enabled ?? true)
 
   const handleNameChange = (newName: string) => {
@@ -46,6 +48,7 @@ export function GeofenceForm({
   useEffect(() => {
     if (geofence) {
       setName(geofence.name)
+      setLocationId(geofence.locationId || "")
       setEnabled(geofence.enabled)
     }
   }, [geofence])
@@ -63,6 +66,7 @@ export function GeofenceForm({
 
     onSubmit({
       name,
+      locationId: locationId || undefined,
       coordinates: coords,
       enabled,
     })
@@ -83,6 +87,24 @@ export function GeofenceForm({
           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           placeholder="Downtown Store"
         />
+      </div>
+
+      <div>
+        <label htmlFor="locationId" className="block text-sm font-medium text-gray-700 mb-1">
+          Location ID
+          <span className="text-gray-500 font-normal ml-1">(optional)</span>
+        </label>
+        <input
+          id="locationId"
+          type="text"
+          value={locationId}
+          onChange={e => setLocationId(e.target.value)}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          placeholder="store-123"
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          External identifier for integration with other platforms (e.g., store ID)
+        </p>
       </div>
 
       <div className="bg-gray-50 border border-gray-200 rounded-md p-3">

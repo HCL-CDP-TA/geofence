@@ -55,7 +55,7 @@ This is a geofencing monorepo that consists of:
 Located in [packages/admin/prisma/schema.prisma](packages/admin/prisma/schema.prisma):
 
 - **User**: Authentication users with bcrypt-hashed passwords
-- **Geofence**: Geographic zones defined as 8-vertex polygons stored in JSONB `coordinates` field, with enabled status
+- **Geofence**: Geographic zones defined as 8-vertex polygons stored in JSONB `coordinates` field, with enabled status and optional `locationId` for correlating with external systems (e.g., a store ID from a CMS)
 - **UserGeofenceState**: Tracks active geofences per (appId, userId) for server-side evaluation
   - Uses composite unique constraint `@@unique([appId, userId])` to support multiple apps
   - Default `appId: "default-app"` for backward compatibility
@@ -103,6 +103,10 @@ The server-side evaluation mode uses a **pluggable adapter pattern** to route ge
 - Configure via environment variables
 - See [docs/ADAPTERS.md](docs/ADAPTERS.md) for detailed guide
 
+**Event Payload — `locationId`**:
+
+All adapters receive `event.geofence.locationId` (`string | null`). Use this to correlate the geofence with a record in an external system (e.g., look up store details by ID). Set when creating/editing a geofence in the admin UI.
+
 ### Authentication Flow
 
 NextAuth v5 configuration in [packages/admin/src/lib/auth.ts](packages/admin/src/lib/auth.ts):
@@ -138,6 +142,8 @@ npm run dev -w admin         # Start Next.js dev server (port 3000)
 npm run build -w admin       # Build for production
 npm run start -w admin       # Start production server
 npm run lint -w admin        # Run ESLint
+npm run test -w admin        # Run unit tests (Vitest)
+npm run test:watch -w admin  # Run unit tests in watch mode
 
 # Prisma commands
 npx prisma migrate dev -w admin      # Run migrations in dev
@@ -470,6 +476,7 @@ Your backend must provide a public endpoint that returns enabled geofences:
   {
     "id": "uuid",
     "name": "Store Location",
+    "locationId": "store-123",
     "coordinates": [
       { "lat": 37.7749, "lng": -122.4194 },
       { "lat": 37.7750, "lng": -122.4194 },
@@ -484,6 +491,8 @@ Your backend must provide a public endpoint that returns enabled geofences:
   }
 ]
 ```
+
+`locationId` is optional — geofences without one return `null`. It is also included in all server-side event adapter payloads (webhook body and CDP properties).
 
 **Reference implementation**: See [packages/admin/app/api/public/geofences/route.ts](packages/admin/app/api/public/geofences/route.ts)
 
@@ -678,6 +687,7 @@ UI components in [packages/admin/src/components](packages/admin/src/components):
 5. **SDK Testing**: Use `npm run dev:test` to start the test app
    - **Manual Mode**: Set positions via input fields, map clicks, or quick buttons
    - **GPS Mode**: Use Chrome DevTools Sensors tab to emulate GPS locations - map auto-follows position
+6. **Unit Tests**: Run `npm run test -w admin` to execute the admin package test suite — see [docs/TESTING.md](docs/TESTING.md)
 
 ## Releases and Publishing
 
