@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.0](https://github.com/HCL-CDP-TA/geofence/compare/geofence-sdk-v3.0.0...geofence-sdk-v3.1.0) (2026-03-03)
+
+
+### Features
+
+* **admin:** add locationId field to geofences + unit test suite ([1d5f2d6](https://github.com/HCL-CDP-TA/geofence/commit/1d5f2d636d295052c5596469712dcc515f0424d3))
+
 ## [3.0.0](https://github.com/HCL-CDP-TA/geofence/compare/geofence-sdk-v2.0.1...geofence-sdk-v3.0.0) (2025-12-16)
 
 
