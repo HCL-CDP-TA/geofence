@@ -1,5 +1,23 @@
 # Changelog
 
+## [3.1.0](https://github.com/HCL-CDP-TA/geofence/compare/admin-v3.0.0...admin-v3.1.0) (2026-03-03)
+
+
+### Features
+
+* added api-key to webhook headers ([e63fb35](https://github.com/HCL-CDP-TA/geofence/commit/e63fb35ba3ff65f75b411e15bffbdf7c38c00a99))
+* **admin:** add locationId field to geofences + unit test suite ([1d5f2d6](https://github.com/HCL-CDP-TA/geofence/commit/1d5f2d636d295052c5596469712dcc515f0424d3))
+
+
+### Bug Fixes
+
+* updated cdp event names ([17399dc](https://github.com/HCL-CDP-TA/geofence/commit/17399dccf200af51a6e24a89766e9269a839360d))
+
+
+### Maintenance
+
+* **main:** release admin 3.0.0 ([c858d55](https://github.com/HCL-CDP-TA/geofence/commit/c858d554281159fce5215c410feb0a485bf9bfc0))
+
 ## [3.0.0](https://github.com/HCL-CDP-TA/geofence/compare/admin-v2.3.0...admin-v3.0.0) (2025-12-16)
 
 
